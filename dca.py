@@ -4,8 +4,8 @@ import ccxt
 import secrets
 
 
-bot_token = '1407296421:AAEU0t_vvkE0Dp2TOWxDVGtBRAtG_TnndLU' #OctaneBot
-chat_id = '322464877'
+bot_token = secrets.keys('Telegram bot token') #OctaneBot
+chat_id = secrets.keys('Telegram chat id')
 
 def send_msg(chat_id, msg):
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&text={msg}"
