@@ -29,7 +29,7 @@ def print_review_hdr() -> str:
 def main(freq, amount, profit_threshold):
     sender_email = "jcvelasquez903@gmail.com"
     receiver_email = "velasquez.gaviria@gmail.com"
-    pwd = 'Piramid3'
+    pwd = secrets.keys('sender password')
     buda = exchange.get_exchange('buda')
     lbc_hmac_key = secrets.keys('lbc_hmac_key')
     lbc_hmac_secret = secrets.keys('lbc_hmac_secret')
