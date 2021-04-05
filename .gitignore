@@ -1,0 +1,5 @@
+/.DS_Store
+/.cd.swp
+/.vscode
+/__pycache__
+/secrets.py
