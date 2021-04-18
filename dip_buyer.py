@@ -10,7 +10,7 @@ chat_id = getattr(secrets, 'keys')['Telegram chat id']
 binance_key = getattr(secrets, 'keys')['binance_key']
 binance_secret = getattr(secrets, 'keys')['binance_secret']
 
-MIN_DIP_PCT = -12
+MIN_DIP_PCT = -12 # Minimum 24h pct change to start buying
 
 
 def get_biggest_drop(exchange, symbols='BTC ETH ADA DOT BCH XMR'.split(), quote_currency='USDT') -> dict:
@@ -56,13 +56,12 @@ def place_order(exchange, order_info, dummy_mode=False):
     try:
         order = exchange.create_order(symbol, order_type, side, amount, price, params)
     except InsufficientFunds:
-        symbol = symbol.replace('USDT', 'USDC')
-        order = exchange.create_order(symbol, order_type, side, amount, price, params)
+        try:
+            symbol = symbol.replace('USDT', 'USDC')
+            order = exchange.create_order(symbol, order_type, side, amount, price, params)
+        except BadSymbol: #Tried with balance in USDC but pair not available
+            raise InsufficientFunds
             
-    msg = f'Bought {amount:.08f} {symbol} @ {price:,.2f}. 24h change was {order_info["Pct change"]}%'
-    utils.send_msg(chat_id, msg)
-    print(msg)
-    
     return order
 
 
@@ -70,6 +69,14 @@ def better_than_previous_order(new_order, previous_order, min_discount: float = 
     discount = abs(new_order['Last price'] / previous_order['Last price'] - 1)
     return discount > min_discount
 
+
+def get_order_details(order) -> str:
+    
+    
+    msg = f'Bought {amount:.08f} {symbol} @ {price:,.2f}. 24h change was {order_info["Pct change"]}%'
+    utils.send_msg(chat_id, msg)
+    print(msg)
+    
 
 def main():
     binance = ccxt.binance({'apiKey': binance_key, 'secret': binance_secret, 'enableRateLimit': True})
@@ -93,7 +100,7 @@ def main():
             # msg1 = f'{biggest_drop["Ticker"]} down {biggest_drop["Pct change"]}% from last 24h'
             if previous_order is None or better_than_previous_order(biggest_drop, previous_order):
                 try:
-                    _ = place_order(binance, biggest_drop)
+                    order = place_order(binance, biggest_drop)
                 except InsufficientFunds:
                     print('Insufficient funds. Trying again in 15 minutes...')
                     time.sleep(15 * 60)
