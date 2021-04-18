@@ -93,9 +93,6 @@ def main(freq, amount, profit_threshold):
             temp_pair_net_qty = pair1_net_qty * temp_pair_price * (1 - binance_trading_fee)
             pair1_net_qty = temp_pair_net_qty
             msg += f'\nSell {temp_pair} to get {temp_pair_net_qty:,.6f} BTC ({temp_pair}: {temp_pair_price:,.6f})'
-        else:
-            temp_pair_net_qty = pair1_net_qty
-
         
         # Buy coin with the lowest spread
         pair2 = f'{coin_with_min_spread}/BTC'

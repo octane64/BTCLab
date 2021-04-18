@@ -1,5 +1,5 @@
-import warnings 
-warnings.filterwarnings(action='ignore')
+import requests
+import secrets 
 import smtplib, ssl
 import pandas as pd
 from sodapy import Socrata
@@ -21,6 +21,14 @@ def get_trm():
     with Socrata("www.datos.gov.co", None) as client:
         trm = client.get("mcec-87by", limit=1)[0]['valor']
     return float(trm)
+
+
+def send_msg(chat_id, msg):
+    bot_token = getattr(secrets, 'keys')['Telegram bot token'] #OctaneBot
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&text={msg}"
+
+    # send the msg
+    requests.get(url)
 
 
 if __name__ == "__main__":

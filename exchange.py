@@ -171,8 +171,9 @@ class LocalBitcoins(Exchange):
                                         profile=profile)
             
             # if any(bank in lbc_add.bank_name.lower() for bank in bank_list):
-            if 'xpay' not in lbc_add.bank_name.lower() and 'fastpayments' not in lbc_add.bank_name.lower():
-                if lbc_add.amount >= 1_000_000: adds.append(lbc_add)
+            if 'xpay' not in lbc_add.bank_name.lower() and 'fastpayments' not in lbc_add.bank_name.lower() and \
+                lbc_add.amount >= 1_000_000: 
+                    adds.append(lbc_add)
 
         return adds
 
