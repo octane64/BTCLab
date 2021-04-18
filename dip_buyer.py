@@ -40,7 +40,7 @@ def get_balance(exchange, currency: str) -> float:
     return balance
 
 
-def place_order(exchange, order_info):
+def place_order(exchange, order_info, dummy_mode=False):
     symbol = order_info['Ticker']
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'buy'
@@ -50,7 +50,7 @@ def place_order(exchange, order_info):
 
     # extra params and overrides if needed
     params = {
-        'test': False,  # test if it's valid, but don't actually place it
+        'test': dummy_mode,  # test if it's valid, but don't actually place it
     }
 
     try:
