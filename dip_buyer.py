@@ -10,7 +10,7 @@ chat_id = getattr(secrets, 'keys')['Telegram chat id']
 binance_key = getattr(secrets, 'keys')['binance_key']
 binance_secret = getattr(secrets, 'keys')['binance_secret']
 
-MIN_DIP_PCT = -12 # Minimum 24h pct change to start buying
+MIN_DIP_PCT = -5 # Minimum 24h pct change to start buying
 
 
 def get_biggest_drop(exchange, symbols='BTC ETH ADA DOT BCH XMR'.split(), quote_currency='USDT') -> dict:
@@ -71,8 +71,6 @@ def better_than_previous_order(new_order, previous_order, min_discount: float = 
 
 
 def get_order_details(order) -> str:
-    
-    
     msg = f'Bought {amount:.08f} {symbol} @ {price:,.2f}. 24h change was {order_info["Pct change"]}%'
     utils.send_msg(chat_id, msg)
     print(msg)
@@ -80,7 +78,7 @@ def get_order_details(order) -> str:
 
 def main():
     binance = ccxt.binance({'apiKey': binance_key, 'secret': binance_secret, 'enableRateLimit': True})
-    symbols = 'BTC ETH DOT XMR'.split()
+    symbols = 'BTC ETH DOT XMR BCH'.split()
 
     orders = {}
     i = 0
@@ -92,7 +90,12 @@ def main():
             biggest_drop = get_biggest_drop(binance) # Run whith all default symbols
             i = 0
         
-        print(f'{biggest_drop["Ticker"]} is down {biggest_drop["Pct change"]} from the last 24 hours')
+        if biggest_drop is None:
+            print('None of the pairs have negative 24h change. Checking again in 5 minutes')
+            time.sleep(5 * 60)
+            continue
+        else:
+            print(f'{biggest_drop["Ticker"]} is down {biggest_drop["Pct change"]} from the last 24 hours')
 
         # usdt_balance = get_balance(binance, 'USDT')
         if biggest_drop['Pct change'] < MIN_DIP_PCT:
@@ -100,7 +103,8 @@ def main():
             # msg1 = f'{biggest_drop["Ticker"]} down {biggest_drop["Pct change"]}% from last 24h'
             if previous_order is None or better_than_previous_order(biggest_drop, previous_order):
                 try:
-                    order = place_order(binance, biggest_drop)
+                    order = place_order(binance, biggest_drop, dummy_mode=True)
+                    print(order)
                 except InsufficientFunds:
                     print('Insufficient funds. Trying again in 15 minutes...')
                     time.sleep(15 * 60)
