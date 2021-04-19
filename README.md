@@ -12,4 +12,5 @@ $ source env/bin/activate || (windows) source env/Scripts/activate
 
 # Install project packages
 ```sh
-$ pip install ccxt
+$ pip install ccxt six
+
