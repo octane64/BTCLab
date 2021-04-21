@@ -18,6 +18,6 @@ Add a secrets.py file at the root level directory with the following structure:
 keys = {
     'binance_key': 'your_binance_key',
     'binance_secret': 'your_binance_secret',
-    'Telegram bot token': 'your_telegram_bot_toker (api key)',
+    'Telegram bot token': 'your_telegram_bot_token (api key)',
     'Telegram chat id': 'your_telegram_chat_ID'
 }
