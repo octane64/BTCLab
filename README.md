@@ -11,7 +11,7 @@ $ source env/bin/activate || (windows) source env/Scripts/activate
 # Install project packages
 ```sh
 $ pip install -r requirements.txt
-
+```
 # Configure your secrets file
 Add a secrets.py file at the root level directory with the following structure:
 
