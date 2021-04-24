@@ -66,9 +66,9 @@ def place_order(exchange, order_info, dummy_mode=False):
     return order
 
 
-def better_than_previous(new_order, previous_order, min_discount: float = 0.03) -> bool:
+def better_than_previous(new_order, previous_order, min_additional_drop: float = 0.03) -> bool:
     discount = abs(new_order['Last price'] / previous_order['Last price'] - 1)
-    return discount > min_discount
+    return discount > min_additional_drop
 
 
 def short_summary(order) -> str:
@@ -104,13 +104,14 @@ def save(orders):
 
 @click.command()
 @click.option('--freq', '-f', default=5, help='Frequency in minutes for checking the market')
-@click.option('--min_drop', '-d', default=10, help='Buy only if 24h drop surpass this level')
-def main(freq, min_drop):
+@click.option('--min_initial_drop', '-d', default=10, help='Buy only if 24h drop surpass this level')
+@click.option('--min_additional_drop', '-d', default=10, help='Buy more only if price drops further')
+def main(freq, min_initial_drop, min_additional_drop):
     user_config = get_user_config()
     if freq is None:
         freq = user_config['Bot']['dummy_mode']
 
-    if min_drop is None:
+    if min_initial_drop is None:
         min_drop = user_config['Bot']['dummy_mode']
     
     dummy_mode = user_config['Bot']['dummy_mode']
@@ -122,7 +123,8 @@ def main(freq, min_drop):
     print('Started monitoring crypto prices to buy significant dips')
     print('Symbols:', ', '.join(symbols))
     print(f'Any drop of {min_drop}% or more will be bought')
-    print(f'Subsecent drops of more than {}% relative to previous buys in the same symbol will also be bought')
+    print(f'Subsecuent drops of more than {min_additional_drop}% relative \
+            to previous buys in the same symbol will also be bought')
 
     orders = {}
 
@@ -137,9 +139,9 @@ def main(freq, min_drop):
         else:
             print(f'{biggest_drop["Ticker"]} is down {biggest_drop["Pct change"]}% from the last 24 hours')
 
-        if biggest_drop['Pct change'] < -min_drop:
+        if biggest_drop['Pct change'] < -min_initial_drop:
             previous_order = orders.get(biggest_drop['Ticker'])
-            if previous_order is None or better_than_previous(biggest_drop, previous_order):
+            if previous_order is None or better_than_previous(biggest_drop, previous_order, min_additional_drop):
                 try:
                     order = place_order(binance, biggest_drop, dummy_mode=dummy_mode)
                     # TODO Notify order placed to chat
