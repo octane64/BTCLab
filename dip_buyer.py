@@ -1,3 +1,4 @@
+from os import getuid
 import time
 import utils
 import ccxt
@@ -81,14 +82,30 @@ def short_summary(order) -> str:
     msg = f'{action} {order["filled"]:.8f} {order["symbol"]} @ {order["average"]:,.2f}'
     # utils.send_msg(chat_id, msg)
     return msg
+
+
+def get_user_config() -> dict:
+    import yaml
+
+    with open("config.yaml", 'r') as file:
+        try:
+            user_config = yaml.safe_load(file)
+            print(user_config)
+        except yaml.YAMLError as exc:
+            print(exc)
+    
+    return user_config
+    
     
 
 @click.command()
 @click.option('--freq', '-f', default=5, help='Frequency in minutes for checking the market')
 @click.option('--min_drop', '-d', default=10, help='Buy only if 24h drop surpass this level')
 def main(freq, min_drop):
-    binance = ccxt.binance({'apiKey': binance_key, 'secret': binance_secret, 'enableRateLimit': True})
-    symbols = 'BTC ETH DOT XMR BCH'.split()
+    user_config = get_user_config()
+    binance = ccxt.binance({'apiKey': user_config['binance_key'], 
+                            'secret': user_config['binance_secret', 'enableRateLimit': True})
+    symbols = 'BTC ETH DOT XMR BCH'.split() # TODO Extract to YAML file
 
     orders = {}
 
@@ -117,11 +134,6 @@ def main(freq, min_drop):
                     # TODO Notify fail to place order because insufficient funds to chat
                 else:
                     orders[biggest_drop['Ticker']] = biggest_drop
-            else:
-                ticker = biggest_drop['Ticker']
-                s = ticker[:ticker.find('/')]
-                symbols.remove(s)
-                continue
 
         time.sleep(freq * 60)
 
