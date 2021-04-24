@@ -3,6 +3,7 @@ import time
 import utils
 import ccxt
 import click
+import yaml
 import pickle
 from ccxt.base.errors import InsufficientFunds, BadSymbol
 import secrets
@@ -85,17 +86,20 @@ def short_summary(order) -> str:
 
 
 def get_user_config() -> dict:
-    import yaml
+    """Returns a dictionary with the contents of the config.yaml file"""
 
     with open("config.yaml", 'r') as file:
         try:
             user_config = yaml.safe_load(file)
-            print(user_config)
         except yaml.YAMLError as exc:
             print(exc)
     
     return user_config
     
+
+def save(orders):
+    """Serializes the orders dictionary to a file"""
+    pass
     
 
 @click.command()
@@ -103,9 +107,22 @@ def get_user_config() -> dict:
 @click.option('--min_drop', '-d', default=10, help='Buy only if 24h drop surpass this level')
 def main(freq, min_drop):
     user_config = get_user_config()
-    binance = ccxt.binance({'apiKey': user_config['binance_key'], 
-                            'secret': user_config['binance_secret', 'enableRateLimit': True})
-    symbols = 'BTC ETH DOT XMR BCH'.split() # TODO Extract to YAML file
+    if freq is None:
+        freq = user_config['Bot']['dummy_mode']
+
+    if min_drop is None:
+        min_drop = user_config['Bot']['dummy_mode']
+    
+    dummy_mode = user_config['Bot']['dummy_mode']
+    exchange_api_key = user_config['Binance']['public_key']
+    exchange_api_secret = user_config['Binance']['secret_key']
+    binance = ccxt.binance({'apiKey': exchange_api_key, 'secret': exchange_api_secret, 'enableRateLimit': True})
+    symbols = user_config['Bot']['tickers']
+
+    print('Started monitoring crypto prices to buy significant dips')
+    print('Symbols:', ', '.join(symbols))
+    print(f'Any drop of {min_drop}% or more will be bought')
+    print(f'Subsecent drops of more than {}% relative to previous buys in the same symbol will also be bought')
 
     orders = {}
 
@@ -124,7 +141,7 @@ def main(freq, min_drop):
             previous_order = orders.get(biggest_drop['Ticker'])
             if previous_order is None or better_than_previous(biggest_drop, previous_order):
                 try:
-                    order = place_order(binance, biggest_drop, dummy_mode=True)
+                    order = place_order(binance, biggest_drop, dummy_mode=dummy_mode)
                     # TODO Notify order placed to chat
                     print(order)
                 except InsufficientFunds:
@@ -134,10 +151,10 @@ def main(freq, min_drop):
                     # TODO Notify fail to place order because insufficient funds to chat
                 else:
                     orders[biggest_drop['Ticker']] = biggest_drop
+                    save(orders)
 
         time.sleep(freq * 60)
 
 
 if __name__ == '__main__':
-    print('Started monitoring crypto prices')
     main()
