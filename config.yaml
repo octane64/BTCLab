@@ -1,0 +1,17 @@
+Bot:
+  dummy_mode: true #A value of true indicates that orders will be 'dummy' (your balance will not be affected). A value of false indicates otherwise
+  frequency: 5 #Minutes to wait between bot cycles
+  min_drop: 10 #Percentage (0-100) for the minimun drop for an order to consider
+  min_discount: 3 #Percentage (0-100) for successive potential orders
+  tickers:
+    - BTC
+    - ETH
+    - DOT
+    - XMR
+    - BCH
+Binance:
+  secret_key: XXXXX
+  public_key: XXXXX
+Telegram:
+  bot_token: XXXX
+  chat_id: XXX
