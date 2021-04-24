@@ -16,23 +16,23 @@ $ pip install -r requirements.txt
 ```
 ## Configure the program
 There is a `config.yaml` file at the root level directory with the following parameters for you to customize the program execution/decision making process:
-- Bot
-    - dummy_mode: A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
-    - frequency: Minutes to wait between bot cycles
-    - min_drop: Percentage value (0-100) for the **minimun drop** for an order to be considered
-    - min_discount: Percentage value (0-100) for successive potential orders to be considered
-    - tickers: A list of the **symbols/tickers** that you want the bot to track and consider. E.g:
+- **Bot**
+    - `dummy_mode`: A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
+    - `frequency`: Minutes to wait between bot cycles
+    - `min_drop`: Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
+    - `min_discount`: Percentage value _(0-100)_ for successive potential orders to be considered
+    - `tickers`: A list of the **symbols/tickers** that you want the bot to track and consider. E.g:
         - BTC
         - ETH
         - DOT
         - XMR
         - BCH
-- Binance: Parameters to exchange information with the **Binance API**
-    - secret_key: Secret **API** key
-    - public_key: Public **API** key
-- Telegram: Parameters for the program to send notifications via **Telegram's bots**
-    - bot_token: **Telegram's** bot token
-    - chat_id: **Telegram's** chat id (recipient)
+- **Binance:** Parameters to exchange information with the **Binance API**
+    - `secret_key`: Secret **API** key
+    - `public_key`: Public **API** key
+- **Telegram:** Parameters for the program to send notifications via **Telegram's bots**
+    - `bot_token`: **Telegram's** bot token
+    - `chat_id`: **Telegram's** chat id (recipient)
 
 # Run the program
 To run the program, just type the following command and press enter:
