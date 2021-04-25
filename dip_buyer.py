@@ -42,8 +42,6 @@ def main():
         f"Subsecuent drops of more than {bot_min_additional_drop}% relative to previous buys in the same symbol will also be bought"
     )
 
-    exit()
-
     binance = ccxt.binance(
         {
             "apiKey": binance_public_key,
