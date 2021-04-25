@@ -16,8 +16,8 @@ def main():
     bot_insufficient_funds_wait_minutes = config[Constants.CONFIG_BOT_KEY][
         Constants.CONFIG_INSUFFICIENT_FUNDS_WAIT_MINUTES_KEY
     ]
-    bot_min_drop = config[Constants.CONFIG_BOT_KEY][Constants.CONFIG_MIN_DROP_KEY]
-    bot_min_discount = config[Constants.CONFIG_BOT_KEY][
+    bot_min_initial_drop = config[Constants.CONFIG_BOT_KEY][Constants.CONFIG_MIN_INITIAL_DROP_KEY]
+    bot_min_additional_drop = config[Constants.CONFIG_BOT_KEY][
         Constants.CONFIG_MIN_DISCOUNT_KEY
     ]
     bot_tickers = config[Constants.CONFIG_BOT_KEY][Constants.CONFIG_TICKERS_KEY]
@@ -66,10 +66,10 @@ def main():
                 f'{biggest_drop["Ticker"]} is down {biggest_drop["Pct change"]}% from the last 24 hours'
             )
 
-        if biggest_drop["Pct change"] < -bot_min_drop:
+        if biggest_drop["Pct change"] < -bot_min_initial_drop:
             previous_order = orders.get(biggest_drop["Ticker"])
             if previous_order is None or LogicHelper.is_better_than_previous(
-                biggest_drop, previous_order, bot_min_discount / 100
+                biggest_drop, previous_order, bot_min_additional_drop / 100
             ):
                 try:
                     order = APIHelper.place_order(binance, biggest_drop, bot_dummy_mode)
