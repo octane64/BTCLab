@@ -16,8 +16,8 @@ def send_email(sender_email, receiver_email, pwd, msg):
         server.sendmail(sender_email, receiver_email, msg)
 
 
-def send_msg(telegram_bot_token, chat_id, msg):
-    url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={chat_id}&text={msg}"
+def send_msg(telegram_bot_token, telegram_chat_id, msg):
+    url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={telegram_chat_id}&text={msg}"
 
     # send the msg
     requests.get(url)
