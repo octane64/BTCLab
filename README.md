@@ -20,8 +20,8 @@ There is a `config.yaml` file at the root level directory with the following par
     - `dummy_mode`: A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
     - `frequency`: Minutes to wait between bot cycles
     - `insufficient_funds_wait_minutes`: Minutes to wait before the next cycle when insufficient funds to place an order
-    - `min_drop`: Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
-    - `min_discount`: Percentage value _(0-100)_ for successive potential orders to be considered
+    - `min_initial_drop`: Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
+    - `min_additional_drop`: Percentage value _(0-100)_ for successive potential orders to be considered
     - `tickers`: A list of the **symbols/tickers** that you want the bot to track and consider. E.g:
         - BTC
         - ETH
