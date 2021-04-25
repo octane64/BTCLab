@@ -1,4 +1,3 @@
-from os import getuid
 import time
 import ccxt
 from ccxt.base.errors import InsufficientFunds, BadSymbol
@@ -16,9 +15,11 @@ def main():
     bot_insufficient_funds_wait_minutes = config[Constants.CONFIG_BOT_KEY][
         Constants.CONFIG_INSUFFICIENT_FUNDS_WAIT_MINUTES_KEY
     ]
-    bot_min_initial_drop = config[Constants.CONFIG_BOT_KEY][Constants.CONFIG_MIN_INITIAL_DROP_KEY]
+    bot_min_initial_drop = config[Constants.CONFIG_BOT_KEY][
+        Constants.CONFIG_MIN_INITIAL_DROP_KEY
+    ]
     bot_min_additional_drop = config[Constants.CONFIG_BOT_KEY][
-        Constants.CONFIG_MIN_DISCOUNT_KEY
+        Constants.CONFIG_MIN_ADDITIONAL_DROP_KEY
     ]
     bot_tickers = config[Constants.CONFIG_BOT_KEY][Constants.CONFIG_TICKERS_KEY]
     binance_public_key = config[Constants.CONFIG_BINANCE_KEY][
@@ -35,12 +36,13 @@ def main():
     ]
 
     print("Started monitoring crypto prices to buy significant dips")
-    print("Symbols:", ", ".join(symbols))
-    print(f"Any drop of {min_drop}% or more will be bought")
+    print("Symbols:", ", ".join(bot_tickers))
+    print(f"Any drop of {bot_min_initial_drop}% or more will be bought")
     print(
-        f"Subsecuent drops of more than {min_additional_drop}% relative \
-            to previous buys in the same symbol will also be bought"
+        f"Subsecuent drops of more than {bot_min_additional_drop}% relative to previous buys in the same symbol will also be bought"
     )
+
+    exit()
 
     binance = ccxt.binance(
         {
