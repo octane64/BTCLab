@@ -1,3 +1,5 @@
 def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
-    discount = abs(new_order["Last price"] / previous_order["Last price"] - 1)
-    return discount > min_discount
+    assert min_discount > 0, 'min_discount should be a positive number'
+    
+    discount = new_order['price'] / previous_order['price'] - 1
+    return discount < 0 and abs(discount) > min_discount/100

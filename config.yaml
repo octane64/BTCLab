@@ -1,18 +1,20 @@
-Bot:
-  dummy_mode: true #A value of true indicates that orders will be 'dummy' (your balance will not be affected). A value of false indicates otherwise
-  frequency: 5 #Minutes to wait between bot cycles
-  insufficient_funds_wait_minutes: 15
-  min_initial_drop: 10 #Percentage (0-100) for the minimun drop for an order to consider
-  min_additional_drop: 3 #Percentage (0-100) drop from previous orders to consider a new buy order in the same ticker
+General:
+  frequency: 5 # Minutes to wait between bot cycles
+  order_amount_usd: 11 # Amount to trade in USD for each order
+  min_initial_drop: 7 # Percentage (0-100) for the minimun drop for an order to consider
+  min_additional_drop: 2 # Percentage (0-100) drop from previous orders to consider a new buy order in the same ticker
+  retry_after: 15 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds
+  dry_run: true # A value of true indicates that orders will be 'dummy' (your balance will not be affected). A value of false indicates otherwise
   tickers:
     - BTC
     - ETH
     - DOT
     - XMR
     - BCH
-Binance:
-  secret_key: XXXXX
-  public_key: p5j3V7FHMEKDX96vydOJbgRz628rnFO3Fz1qFhVjRaMkY2V2ytGb1K6DWE8C7LOs
-Telegram:
-  bot_token: XXXX
-  chat_id: XXX
+Exchange:
+  exchange_name: Binance
+  api_key: YOUR_API_KEY
+  api_secret: YOUR_API_SECRET
+IM:
+  telegram_bot_token: YOUR_TELEGRAM_BOT
+  telegram_chat_id: YOUR_TELEGRAM_CHAT_ID

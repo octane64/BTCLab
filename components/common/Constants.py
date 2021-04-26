@@ -1,13 +1,16 @@
-CONFIG_BOT_KEY = "Bot"
-CONFIG_DUMMY_MODE_KEY = "dummy_mode"
-CONFIG_FREQUENCY_KEY = "frequency"
-CONFIG_INSUFFICIENT_FUNDS_WAIT_MINUTES_KEY = "insufficient_funds_wait_minutes"
-CONFIG_MIN_INITIAL_DROP_KEY = "min_initial_drop"
-CONFIG_MIN_ADDITIONAL_DROP_KEY = "min_additional_drop"
-CONFIG_TICKERS_KEY = "tickers"
-CONFIG_BINANCE_KEY = "Binance"
-CONFIG_SECRET_KEY = "secret_key"
-CONFIG_PUBLIC_KEY = "public_key"
-CONFIG_TELEGRAM_KEY = "Telegram"
-CONFIG_BOT_TOKEN_KEY = "bot_token"
-CONFIG_CHAT_ID_KEY = "chat_id"
+# General
+DRY_RUN = 'dry_run'
+FREQUENCY = 'frequency'
+AMOUNT = 'ammount'
+INSUFFICIENT_FUNDS_WAIT_MINUTES = 'insufficient_funds_wait_minutes'
+MIN_INITIAL_DROP = 'min_initial_drop'
+MIN_ADDITIONAL_DROP = 'min_additional_drop'
+TICKERS = 'tickers'
+
+# Exchange
+API_SECRET = 'secret'
+API_KEY = 'public'
+
+# IM
+TELEGRAM_BOT_TOKEN = 'telegram_bot_token'
+TELEGRAM_CHAT_ID = 'telegram_chat_id'

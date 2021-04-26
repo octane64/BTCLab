@@ -1,4 +1,4 @@
-def to_short_summary(order) -> str:
+def short_summary(order, pct_chg) -> str:
     """ "
     Returns a brief description of an order
     order param is a dict with the structure defined in
@@ -7,6 +7,9 @@ def to_short_summary(order) -> str:
     action = "Bought" if order["side"] == "buy" else "Sold"
 
     # Ex: Bought 0.034534 BTC/USDT @ 56,034.34
-    msg = f'{action} {order["filled"]:.8f} {order["symbol"]} @ {order["average"]:,.2f}'
-    # utils.send_msg(chat_id, msg)
+    msg = (
+        f'{order["symbol"]} is down {pct_chg:.2f}% from the last 24'
+        f'hours. {action} {order["filled"]:.6f} @ {order["average"]:,.2f}'
+    )
     return msg
+    
