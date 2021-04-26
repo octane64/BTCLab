@@ -33,6 +33,7 @@ def main():
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     retry_after = config['General']['retry_after']
+    dry_run = config['General']['dry_run']
 
     print_header(config)
     binance = ccxt.binance(
@@ -53,11 +54,13 @@ def main():
             time.sleep(freq * 60)
             continue
 
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if biggest_drop['24h_pct_chg'] < -min_drop:
             previous_order = orders.get(biggest_drop['symbol'])
-            if previous_order is None or LogicHelper.is_better_than_previous(biggest_drop, previous_order, min_drop):
+            
+            if LogicHelper.is_better_than_previous(biggest_drop, previous_order, min_drop):
                 try:
-                    order = APIHelper.place_order(binance, biggest_drop, amount_usd, dry_run=True)
+                    order = APIHelper.place_order(binance, biggest_drop, amount_usd, dry_run=dry_run)
                 except InsufficientFunds:
                     print(f'Insufficient funds. Trying again in {retry_after} minutes...')
                     time.sleep(retry_after * 60)
@@ -67,13 +70,14 @@ def main():
                 else:
                     msg = oh.short_summary(order, biggest_drop['24h_pct_chg'])
                     im.send_msg(bot_token, chat_id, msg)
-                    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     print(f'\n{now} - {msg}')
                     orders[biggest_drop['symbol']] = order
                     # save(orders)
+        else:
+            print(f'{now} - No big discounts. Checking again in {freq} minutes')
 
         # time.sleep(freq * 30)
-        time.sleep(5)
+        time.sleep(freq * 60)
 
 
 if __name__ == '__main__':

@@ -52,7 +52,7 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     }
     
     return order
-
+  
 
 def place_order(exchange, order_info, amount_in_usd, dry_run=True):
     # Returns a dictionary with the information of the order placed
