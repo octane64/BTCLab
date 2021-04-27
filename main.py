@@ -1,13 +1,9 @@
 import time
 import ccxt
+import crypto
+import utils
 from datetime import datetime
 from ccxt.base.errors import InsufficientFunds, BadSymbol
-import components.common.APIHelper as APIHelper
-import components.common.LogicHelper as LogicHelper
-import components.common.Constants as Constants
-import components.common.FileHelper as FileHelper
-import components.common.NotificationsHelper as im
-import components.common.OrdersHelper as oh
 
 
 def print_header(config):
@@ -26,13 +22,14 @@ def print_header(config):
 
 
 def main():
-    config = FileHelper.get_config()
+    config = utils.get_config()
     freq = config["General"]["frequency"]
     min_drop = config['General']['min_initial_drop']
     amount_usd = config['General']['order_amount_usd']
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     retry_after = config['General']['retry_after']
+    dry_run = config['General']['dry_run']
 
     print_header(config)
     binance = ccxt.binance(
@@ -46,34 +43,37 @@ def main():
 
     while True:
         # What symbol has the biggest drop in the last 24 hours?
-        biggest_drop = APIHelper.get_biggest_drop(binance, config['General']['tickers'])
+        biggest_drop = crypto.get_biggest_drop(binance, config['General']['tickers'])
 
         if biggest_drop is None:
             print(f'No new drops. Checking again in {freq} minutes...')
             time.sleep(freq * 60)
             continue
 
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if biggest_drop['24h_pct_chg'] < -min_drop:
             previous_order = orders.get(biggest_drop['symbol'])
-            if previous_order is None or LogicHelper.is_better_than_previous(biggest_drop, previous_order, min_drop):
+            
+            if crypto.is_better_than_previous(biggest_drop, previous_order, min_drop):
                 try:
-                    order = APIHelper.place_order(binance, biggest_drop, amount_usd, dry_run=True)
+                    order = crypto.place_order(binance, biggest_drop, amount_usd, dry_run=dry_run)
                 except InsufficientFunds:
                     print(f'Insufficient funds. Trying again in {retry_after} minutes...')
                     time.sleep(retry_after * 60)
                     msg = f'Insufficient funds while trying to buy {biggest_drop["symbol"]}'
-                    im.send_msg(bot_token, chat_id, )
+                    utils.send_msg(bot_token, chat_id, )
                     continue
                 else:
-                    msg = oh.short_summary(order, biggest_drop['24h_pct_chg'])
-                    im.send_msg(bot_token, chat_id, msg)
-                    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    msg = crypto.short_summary(order, biggest_drop['24h_pct_chg'])
+                    utils.send_msg(bot_token, chat_id, msg)
                     print(f'\n{now} - {msg}')
                     orders[biggest_drop['symbol']] = order
                     # save(orders)
+        else:
+            print(f'{now} - No big discounts. Checking again in {freq} minutes')
 
         # time.sleep(freq * 30)
-        time.sleep(5)
+        time.sleep(freq * 60)
 
 
 if __name__ == '__main__':

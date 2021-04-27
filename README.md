@@ -17,23 +17,25 @@ $ pip install -r requirements.txt
 ## Configure the program
 There is a `config.yaml` file at the root level directory with the following parameters for you to customize the program execution/decision making process:
 - **Bot**
-    - `dummy_mode`: A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
-    - `frequency`: Minutes to wait between bot cycles
-    - `insufficient_funds_wait_minutes`: Minutes to wait before the next cycle when insufficient funds to place an order
-    - `min_initial_drop`: Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
-    - `min_additional_drop`: Percentage value _(0-100)_ for successive potential orders to be considered
+    - `frequency`: 10 # Minutes to wait between bot cycles
+    - `order_amount_usd`: 11 # Amount to trade in USD for each order
+    - `retry_after`: 15 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds
+    - `min_initial_drop`: 10 # Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
+    - `min_additional_drop`: 3 # Percentage value _(0-100)_ for successive potential orders to be considered
+    - `dry_run`: True # A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
     - `tickers`: A list of the **symbols/tickers** that you want the bot to track and consider. E.g:
         - BTC
         - ETH
+        - ADA
         - DOT
         - XMR
         - BCH
-- **Binance:** Parameters to exchange information with the **Binance API**
-    - `secret_key`: Secret **API** key
-    - `public_key`: Public **API** key
-- **Telegram:** Parameters for the program to send notifications via **Telegram's bots**
-    - `bot_token`: **Telegram's** bot token
-    - `chat_id`: **Telegram's** chat id (recipient)
+- **Exchange:** Parameters to exchange information with the **Exchange API**
+    - `api_key`: Secret **API** key
+    - `api_secret`: Public **API** key
+- **IM:** Parameters for the program to send notifications via **Telegram's bots**
+    - `telegram_bot_token`: **Telegram's** bot token
+    - `telegram_chat_id`: **Telegram's** chat id (recipient)
 
 # Run the program
 To run the program, just type the following command and press enter:
