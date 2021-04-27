@@ -84,3 +84,29 @@ def place_order(exchange, order_info, amount_in_usd, dry_run=True):
                 raise InsufficientFunds
 
     return order
+
+
+def short_summary(order, pct_chg) -> str:
+    """ "
+    Returns a brief description of an order
+    order param is a dict with the structure defined in
+    https://github.com/ccxt/ccxt/wiki/Manual#order-structure
+    """
+    action = "Bought" if order["side"] == "buy" else "Sold"
+
+    # Ex: Bought 0.034534 BTC/USDT @ 56,034.34
+    msg = (
+        f'{order["symbol"]} is down {pct_chg:.2f}% from the last 24'
+        f'hours. {action} {order["filled"]:.6f} @ {order["average"]:,.2f}'
+    )
+    return msg
+
+
+def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
+    assert min_discount > 0, 'min_discount should be a positive number'
+    
+    if previous_order is None:
+        return True
+
+    discount = new_order['price'] / previous_order['price'] - 1
+    return discount < 0 and abs(discount) > min_discount/100

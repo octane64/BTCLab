@@ -1,10 +1,9 @@
+import yaml
 import requests
 import smtplib, ssl
 
-
 port = 587  # For starttls
 smtp_server = 'smtp.gmail.com'
-
 
 def send_email(sender_email, receiver_email, pwd, msg):
     context = ssl.create_default_context()
@@ -19,3 +18,13 @@ def send_email(sender_email, receiver_email, pwd, msg):
 def send_msg(telegram_bot_token, telegram_chat_id, msg):
     url = f'https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={telegram_chat_id}&text={msg}'
     requests.get(url)
+
+
+def get_config(file_name="config.yaml") -> dict:
+    to_ret = None
+    with open(file_name, "r") as stream:
+        try:
+            to_ret = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    return to_ret
