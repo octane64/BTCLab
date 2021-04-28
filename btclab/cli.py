@@ -49,13 +49,13 @@ def main(freq: int = config["General"]["frequency"],
     while True:
         # What symbol has the biggest drop in the last 24 hours?
         biggest_drop = crypto.get_biggest_drop(binance, config['General']['tickers'])
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         if biggest_drop is None:
-            print(f'None of the symbols dropping. Checking again in {freq} minutes...')
+            print(f'{now} - None of the symbols dropping. Checking again in {freq} minutes...')
             time.sleep(freq * 60)
             continue
 
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if biggest_drop['24h_pct_chg'] < -min_drop:
             previous_order = orders.get(biggest_drop['symbol'])
             

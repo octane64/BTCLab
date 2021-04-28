@@ -33,6 +33,11 @@ There is a `config.yaml` file at the root level directory with the following par
     - `telegram_bot_token`: **Telegram's** bot token
     - `telegram_chat_id`: **Telegram's** chat id (recipient)
 
+Tell Git to ignore changes in config.yaml after you've saved the file with your data to prevent your private data from being accidentally uploaded
+```sh
+$ git update-index --assume-unchanged btclab/config.yaml
+``` 
+
 # Run the program
 To run the program, just type the following command and press enter:
 ```sh
