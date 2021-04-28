@@ -8,7 +8,7 @@ A bot for Crypto orders management
 $ git clone https://github.com/octane64/BTCLab.git
 $ cd BTCLab
 $ pip install --editable .
-$ btclab --help
+$ python btclab/cli.py --help
 ```
 ## Configure the program
 There is a `config.yaml` file at the root level directory with the following parameters for you to customize the program execution/decision making process:
@@ -41,7 +41,7 @@ $ git update-index --assume-unchanged btclab/config.yaml
 # Run the program
 To run the program, just type the following command and press enter:
 ```sh
-$ python main.py
+$ btclab
 ```
 # Dependency platforms
 ## Binance API

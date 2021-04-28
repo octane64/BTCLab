@@ -61,7 +61,7 @@ def place_order(exchange, order_info, amount_in_usd, dry_run=True):
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
     price = order_info['price']
-    usd_order_amount = 11
+    usd_order_amount = amount_in_usd
     amount = usd_order_amount / price
     
     if dry_run:
