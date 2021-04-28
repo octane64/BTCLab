@@ -19,7 +19,7 @@ There is a `config.yaml` file at the root level directory with the following par
 - **Bot**
     - `frequency`: 10 # Minutes to wait between bot cycles
     - `order_amount_usd`: 11 # Amount to trade in USD for each order
-    - `retry_after`: 15 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds
+    - `retry_after`: 15 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds)
     - `min_initial_drop`: 10 # Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
     - `min_additional_drop`: 3 # Percentage value _(0-100)_ for successive potential orders to be considered
     - `dry_run`: True # A value of true indicates that orders will be 'dummy' (your balance on **binance** will not be affected). A value of false indicates otherwise.
@@ -40,7 +40,7 @@ There is a `config.yaml` file at the root level directory with the following par
 # Run the program
 To run the program, just type the following command and press enter:
 ```sh
-$ python dip_buyer.py
+$ python main.py
 ```
 # Dependency platforms
 ## Binance API
