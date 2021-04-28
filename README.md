@@ -7,17 +7,13 @@ A bot for Crypto orders management
 ```sh
 $ git clone https://github.com/octane64/BTCLab.git
 $ cd BTCLab
-$ (mac || windows) python -m venv env || (linux) virtualenv env
-$ source env/bin/activate || (windows) .\env\Scripts\activate
-```
-## Install project packages
-```sh
-$ pip install -r requirements.txt
+$ pip install --editable .
+$ btclab --help
 ```
 ## Configure the program
 There is a `config.yaml` file at the root level directory with the following parameters for you to customize the program execution/decision making process:
 - **Bot**
-    - `frequency`: 10 # Minutes to wait between bot cycles
+    - `frequency`: 10 # Minutes to wait between new rounds price checking
     - `order_amount_usd`: 11 # Amount to trade in USD for each order
     - `retry_after`: 15 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds)
     - `min_initial_drop`: 10 # Percentage value _(0-100)_ for the **minimun drop** for an order to be considered
