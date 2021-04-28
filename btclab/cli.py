@@ -1,37 +1,42 @@
 import time
 import ccxt
-import crypto
-import utils
+import typer
+from btclab import crypto
+from btclab import utils
 from datetime import datetime
-from ccxt.base.errors import InsufficientFunds, BadSymbol
+from ccxt.base.errors import InsufficientFunds
 
 
-def print_header(config):
+app = typer.Typer()
+config = utils.get_config()
+
+def print_header(freq, amount_usd, min_drop, min_additional_drop, dry_run):
+    global config
     symbols = ', '.join(config['General']['tickers'])
-    min_additional = config['General']['min_additional_drop']
-    dry_run = config['General']['dry_run']
     title = 'Crypto prices monitor running'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
     if dry_run:
         print('Running in summulation mode\n')
     
-    print(f'1) Tracking price changes in: {symbols}')
-    print(f'2) Any drop of {config["General"]["min_initial_drop"]}% or more will be bought')
-    print(f'3) Any further drop of more than {min_additional}% (relative to previous buy) will also be bought')
+    print(f'1) Tracking price changes in: {symbols} every {freq} minutes')
+    print(f'2) Any drop of {min_drop}% or more will trigger a buy order of {amount_usd} [Symbol]/USDT')
+    print(f'3) Any further drop of more than {min_additional_drop}% (relative to prev buy) will also be bought')
     print('')
 
 
-def main():
-    config = utils.get_config()
-    freq = config["General"]["frequency"]
-    min_drop = config['General']['min_initial_drop']
-    amount_usd = config['General']['order_amount_usd']
+@app.command()
+def main(freq: int = config["General"]["frequency"], 
+                    amount_usd = config['General']['order_amount_usd'], 
+                    min_drop: float = config['General']['min_initial_drop'], 
+                    min_additional_drop: float = config['General']['min_additional_drop'], 
+                    dry_run: bool = config['General']['dry_run'],
+                    ):
+    
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     retry_after = config['General']['retry_after']
-    dry_run = config['General']['dry_run']
-
-    print_header(config)
+    
+    print_header(freq, amount_usd, min_drop, min_additional_drop, dry_run)
     binance = ccxt.binance(
         {
             'apiKey': config['Exchange']['api_key'],
@@ -46,7 +51,7 @@ def main():
         biggest_drop = crypto.get_biggest_drop(binance, config['General']['tickers'])
 
         if biggest_drop is None:
-            print(f'No new drops. Checking again in {freq} minutes...')
+            print(f'None of the symbols dropping. Checking again in {freq} minutes...')
             time.sleep(freq * 60)
             continue
 
@@ -70,11 +75,11 @@ def main():
                     orders[biggest_drop['symbol']] = order
                     # save(orders)
         else:
-            print(f'{now} - No big discounts. Checking again in {freq} minutes')
+            print(f'{now} - No big discounts. Checking again in {freq} minutes...')
 
         # time.sleep(freq * 30)
         time.sleep(freq * 60)
 
 
 if __name__ == '__main__':
-    main()
+    typer.run(main)

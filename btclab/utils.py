@@ -20,7 +20,7 @@ def send_msg(telegram_bot_token, telegram_chat_id, msg):
     requests.get(url)
 
 
-def get_config(file_name="config.yaml") -> dict:
+def get_config(file_name="./btclab/config.yaml") -> dict:
     to_ret = None
     with open(file_name, "r") as stream:
         try:
