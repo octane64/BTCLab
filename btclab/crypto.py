@@ -1,7 +1,9 @@
 from datetime import datetime
-from ccxt.base.errors import InsufficientFunds, BadSymbol
+from retry import retry
+from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
+@retry(NetworkError, tries=5, delay=10, backoff=2)
 def get_biggest_drop(exchange, symbols, quote_currency='USDT') -> dict:
     """
     Returns a dictionary with info of the ticker with the biggest drop in price (percent-wise) 
@@ -25,6 +27,7 @@ def get_biggest_drop(exchange, symbols, quote_currency='USDT') -> dict:
     return biggest_drop
 
 
+@retry(NetworkError, tries=5, delay=10, backoff=2)
 def get_balance(exchange, currency: str) -> float:
     balance = exchange.fetch_balance()[currency]['free']
     return balance
@@ -53,7 +56,7 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     
     return order
   
-
+@retry(NetworkError, tries=5, delay=10, backoff=2)
 def place_order(exchange, order_info, amount_in_usd, dry_run=True):
     # Returns a dictionary with the information of the order placed
     

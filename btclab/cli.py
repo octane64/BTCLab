@@ -1,6 +1,7 @@
 import time
 import ccxt
 import typer
+import logging
 from btclab import crypto
 from btclab import utils
 from datetime import datetime
@@ -82,4 +83,5 @@ def main(freq: int = config["General"]["frequency"],
 
 
 if __name__ == '__main__':
+    logging.basicConfig()
     typer.run(main)
