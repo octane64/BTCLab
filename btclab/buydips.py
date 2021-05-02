@@ -2,18 +2,17 @@ import time
 import ccxt
 import typer
 import logging
+from typing import List
 from btclab import crypto
 from btclab import utils
 from datetime import datetime
 from ccxt.base.errors import InsufficientFunds
 
 
-app = typer.Typer()
 config = utils.get_config()
 
-def print_header(freq, amount_usd, min_drop, min_additional_drop, dry_run):
+def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_run):
     global config
-    symbols = ', '.join(config['General']['tickers'])
     title = 'Crypto prices monitor running'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
     if dry_run:
@@ -25,19 +24,38 @@ def print_header(freq, amount_usd, min_drop, min_additional_drop, dry_run):
     print('')
 
 
-@app.command()
-def main(freq: int = config["General"]["frequency"], 
-                    amount_usd = config['General']['order_amount_usd'], 
-                    min_drop: float = config['General']['min_initial_drop'], 
-                    min_additional_drop: float = config['General']['min_additional_drop'], 
-                    dry_run: bool = config['General']['dry_run'],
-                    ):
-    
+def main(
+        symbols: List[str] = typer.Argument(None, 
+            help='Tickers to check for dips. e.g: BTC/USDT, ETH/USDC', show_default=False),
+        amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', 
+            help='Amount to buy of symbol in base currency'), 
+        freq: int = typer.Option(config["General"]["frequency"],
+            help='Frequency in minutes to check for new price drops'),
+        min_drop: float = typer.Option(config['General']['min_initial_drop'],
+            help='Min drop in percentage in the last 24 hours for placing a buy order'),
+        min_additional_drop: float = typer.Option(config['General']['min_additional_drop'], 
+            help='The min additional drop in percentage to buy a symbol previoulsy boght'),
+        dry_run: bool = typer.Option(config['General']['dry_run'], 
+            help='Run in simmulation mode. Don\'t buy anything')):
+
+    """
+    buydips BTC/USDT ETH/USDT DOT/USDT --freq 10 --min-drop 7 --min-aditional-drop 2
+
+    Start checking prices of BTC/USDT ETH/USDT and DOT/USDT every 10 minutes
+    Buy the one with the biggest drop in the last 24h if that drop is bigger than 7% 
+    If the biggest drop is in a symbol previouly bought, buy again only if it is down 2% from last buy price
+    """
+
+    # TODO Check if symbols are supported by the exchange
+
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     retry_after = config['General']['retry_after']
     
-    print_header(freq, amount_usd, min_drop, min_additional_drop, dry_run)
+    if not symbols:
+        symbols = config['General']['tickers']
+
+    print_header(symbols, freq, amount_usd, min_drop, min_additional_drop, dry_run)
     binance = ccxt.binance(
         {
             'apiKey': config['Exchange']['api_key'],
@@ -49,7 +67,7 @@ def main(freq: int = config["General"]["frequency"],
 
     while True:
         # What symbol has the biggest drop in the last 24 hours?
-        biggest_drop = crypto.get_biggest_drop(binance, config['General']['tickers'])
+        biggest_drop = crypto.get_biggest_drop(binance, symbols)
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         if biggest_drop is None:
@@ -67,7 +85,7 @@ def main(freq: int = config["General"]["frequency"],
                     print(f'Insufficient funds. Trying again in {retry_after} minutes...')
                     time.sleep(retry_after * 60)
                     msg = f'Insufficient funds while trying to buy {biggest_drop["symbol"]}'
-                    utils.send_msg(bot_token, chat_id, )
+                    utils.send_msg(bot_token, chat_id)
                     continue
                 else:
                     msg = crypto.short_summary(order, biggest_drop['24h_pct_chg'])

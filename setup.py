@@ -11,6 +11,6 @@ setup(
     install_requires=[i.strip() for i in open('requirements.txt').readlines()],
     entry_points='''
         [console_scripts]
-        btclab=btclab.cli:main
+        btclab=btclab.buydips:main
     '''
 )

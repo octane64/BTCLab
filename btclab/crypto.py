@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import List
 from retry import retry
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
 @retry(NetworkError, tries=5, delay=10, backoff=2)
-def get_biggest_drop(exchange, symbols, quote_currency='USDT') -> dict:
+def get_biggest_drop(exchange, symbols: List[str]) -> dict:
     """
     Returns a dictionary with info of the ticker with the biggest drop in price (percent-wise) 
     in the last 24 hours, None in case any of the symbols have depreciated (<0) in that time
@@ -13,7 +14,7 @@ def get_biggest_drop(exchange, symbols, quote_currency='USDT') -> dict:
     biggest_drop = None
 
     for symbol in symbols:
-        ticker = exchange.fetch_ticker(f'{symbol}/{quote_currency}')
+        ticker = exchange.fetch_ticker(f'{symbol}')
         pct_chg_24h = ticker['percentage']
 
         if pct_chg_24h < ref_pct_change:
@@ -56,6 +57,7 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     
     return order
   
+
 @retry(NetworkError, tries=5, delay=10, backoff=2)
 def place_order(exchange, order_info, amount_in_usd, dry_run=True):
     # Returns a dictionary with the information of the order placed
@@ -63,7 +65,7 @@ def place_order(exchange, order_info, amount_in_usd, dry_run=True):
     symbol = order_info['symbol']
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
-    price = order_info['price']
+    price = order_info['price'] # TODO Fix for symbols with a quote currency not pegged to USD
     usd_order_amount = amount_in_usd
     amount = usd_order_amount / price
     
