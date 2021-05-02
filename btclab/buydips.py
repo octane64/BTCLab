@@ -3,8 +3,8 @@ import ccxt
 import typer
 import logging
 from typing import List
-from btclab import crypto
-from btclab import utils
+import btclab.crypto as crypto
+import btclab.utils as utils
 from datetime import datetime
 from ccxt.base.errors import InsufficientFunds, BadSymbol
 
@@ -100,7 +100,7 @@ def main(
                     orders[biggest_drop['symbol']] = order
                     # save(orders)
         else:
-            print(f'{now} - No big discounts. Checking again in {freq} minutes...')
+            print(f'{now} - Nothing dropping {min_drop}% or more. Checking again in {freq} minutes...')
 
         # time.sleep(freq * 30)
         time.sleep(freq * 60)
