@@ -18,7 +18,7 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
     if dry_run:
         print('Running in summulation mode\n')
     
-    print(f'1) Tracking price changes in: {symbols} every {freq} minutes')
+    print(f'1) Tracking price changes in: {" ".join(symbols)} every {freq} minutes')
     print(f'2) Any drop of {min_drop}% or more will trigger a buy order of {amount_usd} [Symbol]/USDT')
     print(f'3) Any further drop of more than {min_additional_drop}% (relative to prev buy) will also be bought')
     print('')
@@ -26,7 +26,7 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
 
 def main(
         symbols: List[str] = typer.Argument(None, 
-            help='Tickers to check for dips. e.g: BTC/USDT, ETH/USDC', show_default=False),
+            help='Tickers to check for dipzs. e.g: BTC/USDT, ETH/USDC', show_default=False),
         amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', 
             help='Amount to buy of symbol in base currency'), 
         freq: int = typer.Option(config["General"]["frequency"],

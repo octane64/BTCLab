@@ -1,5 +1,5 @@
 # BTCLab
-A bot for Crypto orders management
+A bot for buying the dips in the crypto markets
 
 # Set-up process
 
@@ -8,7 +8,7 @@ A bot for Crypto orders management
 $ git clone https://github.com/octane64/BTCLab.git
 $ cd BTCLab
 $ pip install --editable .
-$ python btclab/cli.py --help
+$ python btclab/buydips.py --help
 ```
 ## Configure the program
 There is a `config.yaml` file at the root level directory with the following parameters for you to customize the program execution/decision making process:

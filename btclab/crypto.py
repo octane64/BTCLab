@@ -102,7 +102,7 @@ def short_summary(order, pct_chg) -> str:
     # Ex: Bought 0.034534 BTC/USDT @ 56,034.34
     msg = (
         f'{order["symbol"]} is down {pct_chg:.2f}% from the last 24'
-        f'hours. {action} {order["filled"]:.6f} @ {order["average"]:,.2f}'
+        f'hours: {action} {order["filled"]:.6f} @ {order["average"]:,.2f}'
     )
     return msg
 
@@ -110,5 +110,8 @@ def short_summary(order, pct_chg) -> str:
 def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
     assert min_discount > 0, 'min_discount should be a positive number'
     
+    if previous_order is None:
+        return True
+
     discount = new_order['price'] / previous_order['price'] - 1
     return discount < 0 and abs(discount) > min_discount/100
