@@ -7,7 +7,9 @@ A bot for buying the dips in the crypto markets
 ```sh
 $ git clone https://github.com/octane64/BTCLab.git
 $ cd BTCLab
-$ pip install --editable .
+$ python -m venv env
+$ source env/bin/activate (or $ .\env\Scripts\activate if you are in Windows)
+$ pip install -r requirements.txt
 $ python btclab/buydips.py --help
 ```
 ## Configure the program
@@ -41,7 +43,7 @@ $ git update-index --assume-unchanged btclab/config.yaml
 # Run the program
 To run the program, just type the following command and press enter:
 ```sh
-$ buydips
+$ python btclab/buydips.py
 ```
 # Dependency platforms
 ## Binance API
