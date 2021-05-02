@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='btclab',
+    name='buydips',
     version='0.1',
-    description='Script to operate with cryptos',
+    description='Script to buy dips in the crypto markets',
     license='GPL',
     packages=find_packages(),
     include_package_data=True,

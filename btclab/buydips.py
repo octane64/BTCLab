@@ -6,13 +6,12 @@ from typing import List
 from btclab import crypto
 from btclab import utils
 from datetime import datetime
-from ccxt.base.errors import InsufficientFunds
+from ccxt.base.errors import InsufficientFunds, BadSymbol
 
 
 config = utils.get_config()
 
 def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_run):
-    global config
     title = 'Crypto prices monitor running'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
     if dry_run:
@@ -63,11 +62,18 @@ def main(
             'enableRateLimit': True,
         }
     )
+
     orders = {}
 
     while True:
         # What symbol has the biggest drop in the last 24 hours?
-        biggest_drop = crypto.get_biggest_drop(binance, symbols)
+        biggest_drop = None
+        try:
+            biggest_drop = crypto.get_biggest_drop(binance, symbols)
+        except BadSymbol as bs:
+            typer.echo(f'Sorry, {str(bs)}\n')
+            raise typer.Exit(code=-1)
+
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         if biggest_drop is None:
