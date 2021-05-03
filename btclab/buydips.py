@@ -3,8 +3,8 @@ import ccxt
 import typer
 import logging
 from typing import List
-import btclab.crypto as crypto
-import btclab.utils as utils
+import crypto
+import utils
 from datetime import datetime
 from ccxt.base.errors import InsufficientFunds, BadSymbol
 
@@ -25,7 +25,7 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
 
 def main(
         symbols: List[str] = typer.Argument(None, 
-            help='Tickers to check for dipzs. e.g: BTC/USDT, ETH/USDC', show_default=False),
+            help='The symbols you want to buy if they dip enough. e.g: BTC/USDT, ETH/USDC', show_default=False),
         amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', 
             help='Amount to buy of symbol in base currency'), 
         freq: int = typer.Option(config["General"]["frequency"],
