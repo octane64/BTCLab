@@ -67,7 +67,6 @@ def main(
 
     while True:
         # What symbol has the biggest drop in the last 24 hours?
-        biggest_drop = None
         try:
             biggest_drop = crypto.get_biggest_drop(binance, symbols)
         except BadSymbol as bs:
@@ -84,7 +83,7 @@ def main(
         if biggest_drop['24h_pct_chg'] < -min_drop:
             previous_order = orders.get(biggest_drop['symbol'])
             
-            if biggest_drop is not None and crypto.is_better_than_previous(biggest_drop, previous_order, min_drop):
+            if crypto.is_better_than_previous(biggest_drop, previous_order, min_drop):
                 try:
                     order = crypto.place_order(binance, biggest_drop, amount_usd, dry_run=dry_run)
                 except InsufficientFunds:
