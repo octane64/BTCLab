@@ -24,11 +24,12 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     
     The sctructure used is the same that the one returned by the create_order function from ccxt library
     """
-    timestamp = datetime.now().isoformat()
+    right_now = datetime.now()
     order = {
             'id': 'DummyOrder',
-            'datetime': timestamp,
-            'lastTradeTimestamp': timestamp,
+            'datetime': right_now.isoformat(),
+            'timestamp': datetime.timestamp(right_now),
+            'lastTradeTimestamp': datetime.timestamp(right_now),
             'status': 'closed',
             'symbol': symbol,
             'type': order_type,

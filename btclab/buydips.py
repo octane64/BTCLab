@@ -6,7 +6,7 @@ from typing import List
 import crypto
 import utils
 import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from ccxt.base.errors import InsufficientFunds, BadSymbol
 
 
@@ -24,6 +24,15 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
     print()
 
 
+def bought_less_than_24h_ago(symbol:str, orders: dict) -> bool:
+    if symbol in orders and orders[symbol]['filled'] > 0:
+        now = datetime.now()
+        bought_on = datetime.fromtimestamp(orders[symbol]['lastTradeTimestamp'])
+        diff = now - bought_on
+        return diff.days <= 1
+    return False
+
+
 def main(
         symbols: List[str] = typer.Argument(None, 
             help='The symbols you want to buy if they dip enough. e.g: BTC/USDT, ETH/USDC', show_default=False),
@@ -36,7 +45,8 @@ def main(
         min_additional_drop: float = typer.Option(config['General']['min_additional_drop'], 
             help='The min additional drop in percentage to buy a symbol previoulsy boght'),
         dry_run: bool = typer.Option(config['General']['dry_run'], 
-            help='Run in simmulation mode. Don\'t buy anything')):
+            help='Run in simmulation mode. Don\'t buy anything'),
+        reset_cache: bool = typer.Option(False)):
 
     """
     Example usage:
@@ -67,35 +77,42 @@ def main(
         typer.echo(f'Sorry, {", ".join(non_supported_symbols)}\n')
         raise typer.Exit(code=-1)
 
-    orders = db.get_orders()
+    orders = {} if reset_cache else db.get_orders() 
 
     while True:
         tickers = binance.fetch_tickers(symbols)
-        buy_first_time = False
-        buy_again = False
         
         for symbol, ticker in tickers.items():
-            if symbol in orders and orders[symbol]['filled'] > 0: # Previously bought
+            now = datetime.now()
+            now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+            buy_first_time = False
+            buy_again = False
+            if symbol in orders and bought_less_than_24h_ago(symbol, orders):
                 discount_pct = (ticker['ask'] / orders[symbol]['average'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
             
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             if buy_first_time or buy_again:
-                order = crypto.place_order(exchange=binance, 
-                                            symbol=symbol, 
-                                            price=ticker['last'], 
-                                            amount_in_usd=amount_usd,
-                                            dry_run=dry_run)
-                orders[symbol] = order
-                msg = crypto.short_summary(order, ticker['percentage'])
+                try:
+                    order = crypto.place_order(exchange=binance, 
+                                                symbol=symbol, 
+                                                price=ticker['last'], 
+                                                amount_in_usd=amount_usd,
+                                                dry_run=dry_run)
+                except InsufficientFunds:
+                    msg = f'Insufficient funds. Trying again in {freq} minutes...'
+                else:
+                    orders[symbol] = order
+                    msg = crypto.short_summary(order, ticker['percentage'])
+                    db.save(orders)
+                
+                print(f'{now_str} - {msg}')
                 utils.send_msg(bot_token, chat_id, msg)
-                print(f'{now} - {msg}')
-                db.save(orders)
 
-        print(f'{now} - Checking again in {freq} minutes...')
+        print(f'\n{now_str} - Checking again in {freq} minutes...')
         time.sleep(freq * 60)
+        msg = ''
 
 
 if __name__ == '__main__':
