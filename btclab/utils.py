@@ -1,6 +1,8 @@
 import yaml
 import requests
+from requests.exceptions import SSLError
 import smtplib, ssl
+from retry import retry
 
 port = 587  # For starttls
 smtp_server = 'smtp.gmail.com'
@@ -14,7 +16,7 @@ def send_email(sender_email, receiver_email, pwd, msg):
         server.login(sender_email, pwd)
         server.sendmail(sender_email, receiver_email, msg)
 
-
+@retry(SSLError, tries=5, delay=10, backoff=2)
 def send_msg(telegram_bot_token, telegram_chat_id, msg):
     url = f'https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={telegram_chat_id}&text={msg}'
     requests.get(url)
