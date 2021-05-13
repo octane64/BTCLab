@@ -25,9 +25,9 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
 
 
 def bought_less_than_24h_ago(symbol:str, orders: dict) -> bool:
-    if symbol in orders and orders[symbol]['filled'] > 0:
+    if symbol in orders:
         now = datetime.now()
-        bought_on = datetime.fromtimestamp(orders[symbol]['lastTradeTimestamp'])
+        bought_on = datetime.fromtimestamp(orders[symbol]['timestamp']/1000)
         diff = now - bought_on
         return diff.days <= 1
     return False
@@ -88,7 +88,7 @@ def main(
             buy_first_time = False
             buy_again = False
             if symbol in orders and bought_less_than_24h_ago(symbol, orders):
-                discount_pct = (ticker['ask'] / orders[symbol]['average'] - 1) * 100
+                discount_pct = (ticker['ask'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
