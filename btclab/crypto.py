@@ -4,28 +4,13 @@ from retry import retry
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
-@retry(NetworkError, tries=5, delay=10, backoff=2)
-def get_biggest_drop(exchange, symbols: List[str]) -> dict:
-    """
-    Returns a dictionary with info of the ticker with the biggest drop in price (percent-wise) 
-    in the last 24 hours, None in case any of the symbols have depreciated (<0) in that time
-    """
-    ref_pct_change = 0
-    biggest_drop = None
+def get_unsupported_symbols(exchange, symbols: List) -> List:
+    non_supported = []
+    
+    return non_supported
 
-    for symbol in symbols:
-        ticker = exchange.fetch_ticker(f'{symbol}')
-        pct_chg_24h = ticker['percentage']
-
-        if pct_chg_24h < ref_pct_change:
-            biggest_drop = {
-                'symbol': ticker['symbol'],
-                'price': ticker['last'],
-                '24h_pct_chg': pct_chg_24h,
-            }
-            ref_pct_change = pct_chg_24h
-
-    return biggest_drop
+    
+            
 
 
 @retry(NetworkError, tries=5, delay=10, backoff=2)
@@ -59,15 +44,12 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
   
 
 @retry(NetworkError, tries=5, delay=10, backoff=2)
-def place_order(exchange, order_info, amount_in_usd, dry_run=True):
+def place_order(exchange, symbol, price, amount_in_usd, dry_run=True):
     # Returns a dictionary with the information of the order placed
     
-    symbol = order_info['symbol']
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
-    price = order_info['price'] # TODO Fix for symbols with a quote currency not pegged to USD
-    usd_order_amount = amount_in_usd
-    amount = usd_order_amount / price
+    amount = amount_in_usd / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
     
     if dry_run:
         order = get_dummy_order(symbol, order_type, side, price, amount)
@@ -110,8 +92,5 @@ def short_summary(order, pct_chg) -> str:
 def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
     assert min_discount > 0, 'min_discount should be a positive number'
     
-    if previous_order is None:
-        return True
-
     discount = new_order['price'] / previous_order['price'] - 1
     return discount < 0 and abs(discount) > min_discount/100
