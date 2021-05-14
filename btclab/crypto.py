@@ -4,13 +4,10 @@ from retry import retry
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
-def get_unsupported_symbols(exchange, symbols: List) -> List:
-    non_supported = []
-    
-    return non_supported
-
-    
-            
+@retry(NetworkError, tries=5, delay=10, backoff=2)
+def get_unsupported_symbols(exchange, symbols: List) -> set:
+    exchange.load_markets()
+    return set(symbols).difference(set(exchange.symbols))
 
 
 @retry(NetworkError, tries=5, delay=10, backoff=2)

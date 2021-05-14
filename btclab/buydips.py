@@ -20,13 +20,17 @@ c_handler = logging.StreamHandler()
 f_handler = logging.FileHandler('app.log')
 c_handler.setLevel(logging.DEBUG)
 f_handler.setLevel(logging.ERROR)
-c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+c_format = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+f_format = logging.Formatter(fmt=fmt, datefmt='%d-%b-%y %H:%M:%S')
+
 c_handler.setFormatter(c_format)
 f_handler.setFormatter(f_format)
 
-logger.addHandler(c_format)
-logger.addHandler(f_format)
+logger.addHandler(c_handler)
+logger.addHandler(f_handler)
+logger.setLevel(logging.INFO)
 
 def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_run):
     title = 'Crypto prices monitor running. Hit q to quit'
@@ -62,12 +66,13 @@ def main(
             help='Frequency in minutes to check for new price drops'),
         min_drop: float = typer.Option(config['General']['min_initial_drop'],
             help='Min drop in percentage in the last 24 hours for placing a buy order'),
-        min_additional_drop: float = typer.Option(config['General']['min_additional_drop'], 
+        min_additional_drop: float = typer.Option(config['General']['min_additional_drop'],
             help='The min additional drop in percentage to buy a symbol previoulsy bought'),
-        dry_run: bool = typer.Option(config['General']['dry_run'], help='Run in simmulation mode. Don\'t buy anything'),
+        quote_currency: str = typer.Option('USDT', help='Quote curreny to use when none is given in symbols list'),
+        dry_run: bool = typer.Option(config['General']['dry_run'], 
+            help='Run in simmulation mode. Don\'t buy anything'),
         reset_cache: bool = typer.Option(False, help='Reset info of previous operations'),
-        verbose: bool = typer.Option(False, help='Verbose mode')
-        ):
+        verbose: bool = typer.Option(False, help='Verbose mode')):
 
     """
     Example usage:
@@ -78,13 +83,25 @@ def main(
     If the biggest drop is in a symbol previouly bought, buy again only if it is down 2% from last buy price
     """
 
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     
     if not symbols:
         symbols = config['General']['tickers']
+    
+    symbols = [s.upper() for s in symbols]
+    symbols = [f'{s}/{quote_currency}' if '/' not in s else s for s in symbols ]
 
-    print_header(symbols, freq, amount_usd, min_drop, min_additional_drop, dry_run)
+    start_msg = 'Starting new session'
+    if dry_run:
+        start_msg += ' (Running in simmulation mode)'
+    typer.echo('\n')
+    logger.info(start_msg)
+    
+    # print_header(symbols, freq, amount_usd, min_drop, min_additional_drop, dry_run)
     binance = ccxt.binance(
         {
             'apiKey': config['Exchange']['api_key'],
@@ -93,24 +110,28 @@ def main(
         }
     )
 
+    # Check if symbols are supported by the exchange
     non_supported_symbols = crypto.get_unsupported_symbols(binance, symbols)
     if len(non_supported_symbols) > 0:
-        typer.echo(f'Sorry, {", ".join(non_supported_symbols)}\n')
+        logging.error((f'The following symbol(s) are not supported in {binance.name}: '
+                            f'{", ".join(non_supported_symbols)}. Execution stoped\n'))
         raise typer.Exit(code=-1)
 
-    orders = {} if reset_cache else db.get_orders() 
+    # Load previous orders
+    orders = db.get_orders() if not reset_cache else {}
 
+    logger.debug(f'Tracking price drops in: {", ".join(symbols)}')
     while True:
         tickers = binance.fetch_tickers(symbols)
         
         for symbol, ticker in tickers.items():
-            now = datetime.now()
-            now_str = now.strftime('%Y-%m-%d %H:%M:%S')
             buy_first_time = False
             buy_again = False
             if symbol in orders and bought_less_than_24h_ago(symbol, orders):
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
+                if buy_again:
+                    logger.debug(f'Buying again {symbol}, current price is {discount_pct}% lower')
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
             
@@ -122,21 +143,20 @@ def main(
                                                 amount_in_usd=amount_usd,
                                                 dry_run=dry_run)
                 except InsufficientFunds:
-                    msg = f'Insufficient funds. Trying again in {freq} minutes...'
+                    logger.warning(f'Insufficient funds. Trying again in {freq} minutes...')
                 else:
                     orders[symbol] = order
-                    msg = crypto.short_summary(order, ticker['percentage'])
                     db.save(orders)
+                    msg = crypto.short_summary(order, ticker['percentage'])
+                    logger.info(msg)
+                    utils.send_msg(bot_token, chat_id, msg)
+            else:
+                logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]}%) - Not enough discount')
                 
-                print(f'{now_str} - {msg}')
-                utils.send_msg(bot_token, chat_id, msg)
-
-        # print(f'\n{now_str} - Checking again in {freq} minutes...')
-        logger.info(f'Checking again in {freq} minutes...')
+        logger.debug(f'Checking again for price drops in {freq} minutes...')
+        typer.echo()
         time.sleep(freq * 60)
-        msg = ''
 
 
 if __name__ == '__main__':
-    # logger.setLevel(logging.DEBUG)
     typer.run(main)
