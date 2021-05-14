@@ -18,13 +18,15 @@ config = utils.get_config()
 logger = logging.getLogger(__name__)
 c_handler = logging.StreamHandler()
 f_handler = logging.FileHandler('app.log')
-c_handler.setLevel(logging.INFO)
+c_handler.setLevel(logging.DEBUG)
 f_handler.setLevel(logging.ERROR)
 c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+c_handler.setFormatter(c_format)
+f_handler.setFormatter(f_format)
+
 logger.addHandler(c_format)
 logger.addHandler(f_format)
-
 
 def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_run):
     title = 'Crypto prices monitor running. Hit q to quit'
@@ -41,7 +43,10 @@ def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_
 def bought_less_than_24h_ago(symbol:str, orders: dict) -> bool:
     if symbol in orders:
         now = datetime.now()
-        bought_on = datetime.fromtimestamp(orders[symbol]['timestamp']/1000)
+        timestamp = orders[symbol]['timestamp']
+        if '.' not in str(timestamp):
+            timestamp /= 1000
+        bought_on = datetime.fromtimestamp(timestamp)
         diff = now - bought_on
         return diff.days <= 1
     return False
@@ -53,15 +58,16 @@ def main(
             help='The symbols you want to buy if they dip enough. e.g: BTC/USDT, ETH/USDC', show_default=False),
         amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', 
             help='Amount to buy of symbol in base currency'), 
-        freq: int = typer.Option(config['General']['frequency'], 
+        freq: float = typer.Option(config['General']['frequency'], 
             help='Frequency in minutes to check for new price drops'),
         min_drop: float = typer.Option(config['General']['min_initial_drop'],
             help='Min drop in percentage in the last 24 hours for placing a buy order'),
         min_additional_drop: float = typer.Option(config['General']['min_additional_drop'], 
-            help='The min additional drop in percentage to buy a symbol previoulsy boght'),
-        dry_run: bool = typer.Option(config['General']['dry_run'], 
-            help='Run in simmulation mode. Don\'t buy anything'),
-        reset_cache: bool = typer.Option(False), help='Reset info of previous operations'):
+            help='The min additional drop in percentage to buy a symbol previoulsy bought'),
+        dry_run: bool = typer.Option(config['General']['dry_run'], help='Run in simmulation mode. Don\'t buy anything'),
+        reset_cache: bool = typer.Option(False, help='Reset info of previous operations'),
+        verbose: bool = typer.Option(False, help='Verbose mode')
+        ):
 
     """
     Example usage:
@@ -72,7 +78,6 @@ def main(
     If the biggest drop is in a symbol previouly bought, buy again only if it is down 2% from last buy price
     """
 
-    logger.debug('Starting...')
     bot_token = config['IM']['telegram_bot_token']
     chat_id = config['IM']['telegram_chat_id']
     
@@ -104,7 +109,7 @@ def main(
             buy_first_time = False
             buy_again = False
             if symbol in orders and bought_less_than_24h_ago(symbol, orders):
-                discount_pct = (ticker['ask'] / orders[symbol]['price'] - 1) * 100
+                discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
@@ -126,10 +131,12 @@ def main(
                 print(f'{now_str} - {msg}')
                 utils.send_msg(bot_token, chat_id, msg)
 
-        print(f'\n{now_str} - Checking again in {freq} minutes...')
+        # print(f'\n{now_str} - Checking again in {freq} minutes...')
+        logger.info(f'Checking again in {freq} minutes...')
         time.sleep(freq * 60)
         msg = ''
 
 
 if __name__ == '__main__':
+    # logger.setLevel(logging.DEBUG)
     typer.run(main)
