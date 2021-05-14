@@ -8,29 +8,12 @@ from typing import List
 import crypto
 import utils
 import db
+from logconf import logger
 from datetime import datetime, timedelta
 from ccxt.base.errors import InsufficientFunds, RequestTimeout
 
 
 config = utils.get_config()
-
-# Set up logging
-logger = logging.getLogger(__name__)
-c_handler = logging.StreamHandler()
-f_handler = logging.FileHandler('app.log')
-c_handler.setLevel(logging.DEBUG)
-f_handler.setLevel(logging.ERROR)
-
-fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-c_format = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
-f_format = logging.Formatter(fmt=fmt, datefmt='%d-%b-%y %H:%M:%S')
-
-c_handler.setFormatter(c_format)
-f_handler.setFormatter(f_format)
-
-logger.addHandler(c_handler)
-logger.addHandler(f_handler)
-logger.setLevel(logging.INFO)
 
 def print_header(symbols, freq,  amount_usd, min_drop, min_additional_drop, dry_run):
     title = 'Crypto prices monitor running. Hit q to quit'
@@ -56,23 +39,23 @@ def bought_less_than_24h_ago(symbol:str, orders: dict) -> bool:
     return False
 
 
-@retry(RequestTimeout, tries=5, delay=10, backoff=2)
+@retry(RequestTimeout, tries=5, delay=10, backoff=2, logger=logger)
 def main(
         symbols: List[str] = typer.Argument(None, 
             help='The symbols you want to buy if they dip enough. e.g: BTC/USDT, ETH/USDC', show_default=False),
-        amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', 
+        amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', '-a', 
             help='Amount to buy of symbol in base currency'), 
-        freq: float = typer.Option(config['General']['frequency'], 
+        freq: float = typer.Option(config['General']['frequency'], '--freq', '-f',
             help='Frequency in minutes to check for new price drops'),
-        min_drop: float = typer.Option(config['General']['min_initial_drop'],
+        min_drop: float = typer.Option(config['General']['min_initial_drop'], '--min-drop', '-m', 
             help='Min drop in percentage in the last 24 hours for placing a buy order'),
-        min_additional_drop: float = typer.Option(config['General']['min_additional_drop'],
+        min_additional_drop: float = typer.Option(config['General']['min_additional_drop'], '--next-drop', '-n',
             help='The min additional drop in percentage to buy a symbol previoulsy bought'),
         quote_currency: str = typer.Option('USDT', help='Quote curreny to use when none is given in symbols list'),
         dry_run: bool = typer.Option(config['General']['dry_run'], 
             help='Run in simmulation mode. Don\'t buy anything'),
         reset_cache: bool = typer.Option(False, help='Reset info of previous operations'),
-        verbose: bool = typer.Option(False, help='Verbose mode')):
+        verbose: bool = typer.Option(False, '--verbose', '-v', help='Verbose mode')):
 
     """
     Example usage:

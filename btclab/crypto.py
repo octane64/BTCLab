@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import List
 from retry import retry
+from logconf import logger
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
-@retry(NetworkError, tries=5, delay=10, backoff=2)
+@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
 def get_unsupported_symbols(exchange, symbols: List) -> set:
     exchange.load_markets()
     return set(symbols).difference(set(exchange.symbols))
 
 
-@retry(NetworkError, tries=5, delay=10, backoff=2)
+@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
 def get_balance(exchange, currency: str) -> float:
     balance = exchange.fetch_balance()[currency]['free']
     return balance
@@ -41,7 +42,7 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     return order
   
 
-@retry(NetworkError, tries=5, delay=10, backoff=2)
+@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
 def place_order(exchange, symbol, price, amount_in_usd, dry_run=True):
     # Returns a dictionary with the information of the order placed
     
