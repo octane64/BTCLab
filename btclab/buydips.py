@@ -120,7 +120,11 @@ def main(
     # Load previous orders
     orders = db.get_orders() if not reset_cache else {}
 
-    logger.debug(f'Tracking price drops in: {", ".join(symbols)}')
+    logger.info(f'Tracking price drops in: {", ".join(symbols)}')
+    logger.info(f'Min drop level set to {min_drop}% for the first buy')
+    logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought')
+    typer.echo()
+
     while True:
         tickers = binance.fetch_tickers(symbols)
         
@@ -131,7 +135,7 @@ def main(
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
                 if buy_again:
-                    logger.debug(f'Buying again {symbol}, current price is {discount_pct}% lower')
+                    logger.debug(f'Buying again {symbol}, current price is {discount_pct:.1f}% lower')
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
             
@@ -151,7 +155,7 @@ def main(
                     logger.info(msg)
                     utils.send_msg(bot_token, chat_id, msg)
             else:
-                logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]}%) - Not enough discount')
+                logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]:.1f}%) - Not enough discount')
                 
         logger.debug(f'Checking again for price drops in {freq} minutes...')
         typer.echo()
