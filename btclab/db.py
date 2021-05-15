@@ -1,6 +1,6 @@
 import pickle
 
-def save(orders: dict) -> str:
+def save(orders: dict):
     """Saves the orders dictionary to a file"""
     
     pickle.dump(orders, open('orders.pkl', 'wb'))

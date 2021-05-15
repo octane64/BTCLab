@@ -72,7 +72,7 @@ def place_order(exchange, symbol, price, amount_in_usd, dry_run=True):
     return order
 
 
-def short_summary(order, pct_chg) -> str:
+def short_summary(order, pct_chg, buy_again: bool) -> str:
     """ "
     Returns a brief description of an order
     order param is a dict with the structure defined in
@@ -80,7 +80,7 @@ def short_summary(order, pct_chg) -> str:
     """
     action = "Buying" if order["side"] == "buy" else "Sold"
 
-    # Ex: Bought 0.034534 BTC/USDT @ 56,034.34
+    # Ex: Buying 0.034534 BTC/USDT @ 56,034.34
     msg = (
         f'{order["symbol"]} is down {pct_chg:.2f}% from the last 24 '
         f'hours: {action} {order["amount"]:.6f} @ {order["price"]:,.2f}'

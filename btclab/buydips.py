@@ -10,7 +10,7 @@ import utils
 import db
 from logconf import logger
 from datetime import datetime, timedelta
-from ccxt.base.errors import InsufficientFunds, RequestTimeout
+from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
 config = utils.get_config()
@@ -39,7 +39,7 @@ def bought_less_than_24h_ago(symbol:str, orders: dict) -> bool:
     return False
 
 
-@retry(RequestTimeout, tries=5, delay=10, backoff=2, logger=logger)
+@retry((RequestTimeout, NetworkError), tries=8, delay=15, backoff=2, logger=logger)
 def main(
         symbols: List[str] = typer.Argument(None, 
             help='The symbols you want to buy if they dip enough. e.g: BTC/USDT, ETH/USDC', show_default=False),
@@ -117,8 +117,7 @@ def main(
             if symbol in orders and bought_less_than_24h_ago(symbol, orders):
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_additional_drop
-                if buy_again:
-                    logger.debug(f'Buying again {symbol}, current price is {discount_pct:.1f}% lower')
+                
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
             
@@ -134,7 +133,10 @@ def main(
                 else:
                     orders[symbol] = order
                     db.save(orders)
-                    msg = crypto.short_summary(order, ticker['percentage'])
+                    if buy_again:
+                        msg = f'Buying again {symbol}, current price is {discount_pct:.1f}% lower'
+                    else:
+                        msg = crypto.short_summary(order, ticker['percentage'])
                     logger.info(msg)
                     utils.send_msg(bot_token, chat_id, msg)
             else:
