@@ -106,6 +106,12 @@ def main(
     logger.info(f'Tracking price drops in: {", ".join(symbols)}')
     logger.info(f'Min drop level set to {min_drop}% for the first buy')
     logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought')
+
+    if orders:
+        logger.info('Previously bought symbols:')
+        for key, value in orders.items():
+            logger.info(f'{key} -> {value["amount"]} @ {value["price"]}')
+
     typer.echo()
 
     while True:
