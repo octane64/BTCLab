@@ -17,4 +17,4 @@ f_handler.setFormatter(f_format)
 
 logger.addHandler(c_handler)
 logger.addHandler(f_handler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)

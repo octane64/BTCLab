@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 import ccxt
@@ -77,18 +78,28 @@ def main(
     
     symbols = [s.upper() for s in symbols]
     symbols = [f'{s}/{quote_currency}' if '/' not in s else s for s in symbols ]
-
     start_msg = 'Starting new session'
     if dry_run:
         start_msg += ' (Running in simmulation mode)'
-    typer.echo('\n')
+    print()
     logger.info(start_msg)
     
+    api_key = os.environ.get('BINANCE_API_KEY')
+    api_secret = os.environ.get('BINANCE_API_SECRET')
+    if api_key is None or api_secret is None:
+        logger.warning('Add your API key and secret to BINANCE_API_KEY and BINANCE_API_SECRET environment variables to prevent entering on every execution')
+
+    if api_key is None:
+        api_key = typer.prompt('Enter your Binances API key')
+
+    if api_secret is None:
+        typer.prompt('Enter your Binance API secret')
+
     # print_header(symbols, freq, amount_usd, min_drop, min_additional_drop, dry_run)
     binance = ccxt.binance(
         {
-            'apiKey': config['Exchange']['api_key'],
-            'secret': config['Exchange']['api_secret'],
+            'apiKey': api_key,
+            'secret': api_secret,
             'enableRateLimit': True,
         }
     )
@@ -105,8 +116,8 @@ def main(
 
     logger.info(f'Tracking price drops in: {", ".join(symbols)}')
     logger.info(f'Min drop level set to {min_drop}% for the first buy')
-    logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought')
-    typer.echo()
+    logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought\n')
+    logger.info('Run with --verbose option to see more detail')
 
     while True:
         tickers = binance.fetch_tickers(symbols)
@@ -134,16 +145,15 @@ def main(
                     orders[symbol] = order
                     db.save(orders)
                     if buy_again:
-                        msg = f'Buying again {symbol}, current price is {discount_pct:.1f}% lower'
+                        msg = f'Buying again {symbol}, current price is {discount_pct:.1f}% lower than previous buy'
                     else:
                         msg = crypto.short_summary(order, ticker['percentage'])
                     logger.info(msg)
                     utils.send_msg(bot_token, chat_id, msg)
             else:
                 logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]:.1f}%) - Not enough discount')
-                
-        logger.debug(f'Checking again for price drops in {freq} minutes...')
-        typer.echo()
+
+        logger.info(f'Checking again for price drops in {freq} minutes...')
         time.sleep(freq * 60)
 
 
