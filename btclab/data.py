@@ -1,8 +1,11 @@
 import time
+import pandas as pd
 from typing import List
+from datetime import datetime
 import utils
 import ccxt
 from datetime import datetime, timedelta
+
 
 def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
     """Returns a dictionary with OHLCV data for the last num_of_days of each symbol
@@ -31,20 +34,35 @@ def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
         for symbol in symbols:
             time.sleep (exchange.rateLimit / 1000) # time.sleep wants seconds
             data[symbol] = exchange.fetch_ohlcv(symbol, '1d', limit=num_of_days)
+
     return data
+
+
+def get_close_prices(exchange, symbols: list[str], num_of_days: int) -> pd.DataFrame:
+    """Returns a Pandas dataframe with close prices for the symbols provided"""
+    data = get_data(exchange, symbols, num_of_days)
+    
+    df = pd.DataFrame(columns=data.keys())
+    for symbol in data:
+        for ohlcv_row in data[symbol]:
+            posix_timestamp = ohlcv_row[0]/1000
+            date = datetime.fromtimestamp(posix_timestamp).date()
+            close_price = ohlcv_row[3]
+            df.loc[date, symbol] = close_price
+    
+    return df
 
 
 if __name__ == '__main__':
     config = utils.get_config()
-    
+    import os
     binance = ccxt.binance(
         {
-            'apiKey': config['Exchange']['api_key'],
-            'secret': config['Exchange']['api_secret'],
+            'apiKey': os.environ.get('BINANCE_API_KEY'),
+            'secret': os.environ.get('BINANCE_API_SECRET'),
             'enableRateLimit': True,
         }
     )
     
-    data = get_data(binance, ['ADA/USDT'], 100)
-    import pprint
-    pprint.pprint(data['ADA/USDT'])
+    df = get_close_prices(binance, ['ADA/USDT', 'DOT/USDT', 'BTC/USDT'], 300)
+    print(df.tail(15))

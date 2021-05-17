@@ -60,10 +60,10 @@ def main(
 
     """
     Example usage:
-    python buydips BTC/USDT ETH/USDT DOT/USDT --freq 10 --min-drop 7 --min-aditional-drop 2
+    python buydips BTC ETH DOT --freq 10 --min-drop 7 --min-aditional-drop 2
 
     Start checking prices of BTC/USDT ETH/USDT and DOT/USDT every 10 minutes
-    Buy the one with the biggest drop in the last 24h if that drop is bigger than 7% 
+    Buy the ones with a drop in the last 24h greater than 7% 
     If the biggest drop is in a symbol previouly bought, buy again only if it is down 2% from last buy price
     """
 
@@ -87,10 +87,10 @@ def main(
     api_key = os.environ.get('BINANCE_API_KEY')
     api_secret = os.environ.get('BINANCE_API_SECRET')
     if api_key is None or api_secret is None:
-        logger.warning('Add your API key and secret to BINANCE_API_KEY and BINANCE_API_SECRET environment variables to prevent entering on every execution')
+        logger.warning('Add your credentials to BINANCE_API_KEY and BINANCE_API_SECRET environment variables to prevent entering on every execution')
 
     if api_key is None:
-        api_key = typer.prompt('Enter your Binances API key')
+        api_key = typer.prompt('Enter your Binance API key')
 
     if api_secret is None:
         typer.prompt('Enter your Binance API secret')
@@ -116,19 +116,15 @@ def main(
 
     logger.info(f'Tracking price drops in: {", ".join(symbols)}')
     logger.info(f'Min drop level set to {min_drop}% for the first buy')
-<<<<<<< HEAD
-    logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought\n')
-    logger.info('Run with --verbose option to see more detail')
-=======
     logger.info(f'Additional drop level of {min_additional_drop}% for symbols already bought')
+    logger.info('Run with --verbose option to see more detail\n')
 
     if orders:
-        logger.info('Previously bought symbols:')
+        logger.info('You previoulsy bought:')
         for key, value in orders.items():
             logger.info(f'{key} -> {value["amount"]} @ {value["price"]}')
 
     typer.echo()
->>>>>>> aeccc64111b28097123d75e65ad0b31c17d829fb
 
     while True:
         tickers = binance.fetch_tickers(symbols)
