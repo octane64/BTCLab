@@ -28,17 +28,16 @@ There is a `config.yaml` file in the btclab directory with the following paramet
         - DOT/USDT
         - XMR/USDT
         - BCH/USDT
-- **Exchange:** Parameters to exchange information with the **Exchange API**
-    - `api_key`: Secret **API** key
-    - `api_secret`: Public **API** key
 - **IM:** Parameters for the program to send notifications via **Telegram's bots**
     - `telegram_bot_token`: **Telegram's** bot token
     - `telegram_chat_id`: **Telegram's** chat id (recipient)
 
-Tell Git to ignore changes in config.yaml after you've saved the file with your data to prevent your private data from being accidentally uploaded
+Tell Git to ignore changes in config.yaml after you've saved the file with your data to prevent your local changes from being uploaded
 ```sh
 $ git update-index --assume-unchanged btclab/config.yaml
 ``` 
+
+## Add BINANCE_API_KEY and BINANCE_API_SECRET with your credentials as environment variables to your system
 
 # Run the program
 To run the program, just type the following command and press enter:
