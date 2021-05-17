@@ -93,7 +93,7 @@ def main(
         api_key = typer.prompt('Enter your Binance API key')
 
     if api_secret is None:
-        typer.prompt('Enter your Binance API secret')
+        api_secret = typer.prompt('Enter your Binance API secret')
 
     # print_header(symbols, freq, amount_usd, min_drop, min_additional_drop, dry_run)
     binance = ccxt.binance(
