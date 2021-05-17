@@ -37,7 +37,8 @@ Tell Git to ignore changes in config.yaml after you've saved the file with your 
 $ git update-index --assume-unchanged btclab/config.yaml
 ``` 
 
-## Add BINANCE_API_KEY and BINANCE_API_SECRET with your credentials as environment variables to your system
+## Setup credentials for Binance API
+Add BINANCE_API_KEY and BINANCE_API_SECRET with your credentials to access the Binance API as environment variables to your system
 
 # Run the program
 To run the program, just type the following command and press enter:
