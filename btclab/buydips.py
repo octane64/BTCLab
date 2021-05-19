@@ -2,7 +2,7 @@ import os
 import time
 import logging
 import ccxt
-from retry.api import retry
+from retry.api import retry, retry_call
 import typer
 import logging
 from typing import List
@@ -55,7 +55,7 @@ def main(
         quote_currency: str = typer.Option('USDT', help='Quote curreny to use when none is given in symbols list'),
         dry_run: bool = typer.Option(config['General']['dry_run'], 
             help='Run in simmulation mode. Don\'t buy anything'),
-        reset_cache: bool = typer.Option(False, help='Reset info of previous operations'),
+        reset_cache: bool = typer.Option(False, '--reset-cache', '-r', help='Reset info of previous operations'),
         verbose: bool = typer.Option(False, '--verbose', '-v', help='Verbose mode')):
 
     """
@@ -70,7 +70,7 @@ def main(
     if verbose:
         logger.setLevel(logging.DEBUG)
 
-    bot_token = config['IM']['telegram_bot_token']
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     chat_id = config['IM']['telegram_chat_id']
     
     if not symbols:
@@ -147,14 +147,19 @@ def main(
                                                 amount_in_usd=amount_usd,
                                                 dry_run=dry_run)
                 except InsufficientFunds:
-                    logger.warning(f'Insufficient funds. Trying again in {freq} minutes...')
+                    retry_after = config['General']['retry_after']
+                    msg = f'Insufficient funds. Trying again in {retry_after} minutes...'
+                    logger.warning(msg)
+                    utils.send_msg(bot_token, chat_id, msg)
+                    time.sleep(retry_after * 60)
+                    continue
                 else:
                     orders[symbol] = order
                     db.save(orders)
                     if buy_again:
-                        msg = f'Buying again {symbol}, current price is {discount_pct:.1f}% lower than previous buy'
+                        msg = f'Buying {symbol} @ {ticker["last"]:,}, {discount_pct:.1f}% lower than previous buy'
                     else:
-                        msg = crypto.short_summary(order, ticker['percentage'])
+                        msg = f'Buying {symbol} @ {ticker["last"]:,}, {ticker["percentage"]:.1f}% lower than 24h ago'
                     logger.info(msg)
                     utils.send_msg(bot_token, chat_id, msg)
             else:
