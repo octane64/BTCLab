@@ -96,7 +96,7 @@ def main(
     if dry_run:
         start_msg += ' (Running in simmulation mode)'
     print()
-    logger.info(start_msg)
+    print(start_msg)
     
     api_key = os.environ.get('BINANCE_API_KEY')
     api_secret = os.environ.get('BINANCE_API_SECRET')
@@ -134,20 +134,21 @@ def main(
     else:
         orders = db.get_orders()
 
-    logger.info(f'Tracking price drops in: {", ".join(symbols)}')
-    logger.info(f'Min drop level set to {min_drop}% for the first buy')
-    logger.info(f'Additional drop level of {min_next_drop}% for symbols already bought')
-    logger.info(f'The amount to buy on each order will be {amount_usd} {quote_currency}')
+    print(f'- Tracking price drops in: {", ".join(symbols)}')
+    print(f'- Min drop level set to {min_drop}% for the first buy')
+    print(f'- Additional drop level of {min_next_drop}% for symbols already bought')
+    print(f'- The amount to buy on each order will be {amount_usd} {quote_currency}')
     if increase_amount_by > 0:
-        logger.info(f'Amount will increase by {increase_amount_by} {quote_currency} on orders of previoulsy bought symbols')
-    logger.info('Run with --verbose option to see more detail')
-    logger.info('Run with --help to see all options\n')
+        print(f'- Amount will increase by {increase_amount_by} {quote_currency} on orders of previoulsy bought symbols')
+    print('- Run with --verbose option to see more detail')
+    print('- Run with --help to see all options\n')
 
     if orders:
-        logger.info('You previoulsy bought:')
+        print('You previously bought:')
         for key, value in orders.items():
-            logger.info(f'{key} -> {value["amount"]} @ {value["price"]}')
+            print(f'- {key} -> {value["amount"]} @ {value["price"]}')
 
+    print(f'\nChecking for new price drops every {freq} minutes... Hit Cmd/Ctrl + C to exit')
     typer.echo()
 
     while True:
@@ -196,7 +197,7 @@ def main(
             else:
                 logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]:.1f}%)')
 
-        logger.info(f'Checking again for price drops in {freq} minutes...')
+        logger.debug(f'Checking again for price drops in {freq} minutes...')
         time.sleep(freq * 60)
 
 
