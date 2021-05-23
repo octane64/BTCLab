@@ -16,6 +16,7 @@ def send_email(sender_email, receiver_email, pwd, msg):
         server.login(sender_email, pwd)
         server.sendmail(sender_email, receiver_email, msg)
 
+
 @retry(ConnectionError, tries=5, delay=10, backoff=2)
 def send_msg(telegram_bot_token, telegram_chat_id, msg):
     url = f'https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={telegram_chat_id}&text={msg}'

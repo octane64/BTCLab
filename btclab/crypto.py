@@ -6,7 +6,7 @@ from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
 @retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
-def get_unsupported_symbols(exchange, symbols: List) -> set:
+def get_non_supported_symbols(exchange, symbols: List) -> set:
     exchange.load_markets()
     return set(symbols).difference(set(exchange.symbols))
 
@@ -18,9 +18,8 @@ def get_balance(exchange, currency: str) -> float:
 
 
 def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
-    """Returns a dictionary with the order information. 
-    
-    The sctructure used is the same that the one returned by the create_order function from ccxt library
+    """Returns a dictionary with the information of a dummy order. 
+    The structure is the same as the one returned by the create_order function from ccxt library
     """
     right_now = datetime.now()
     order = {
@@ -36,27 +35,29 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
             'average': price,
             'amount': amount,
             'filled': amount,
-            'remaining': 0  # Asumes the whole order amount got filled in dry-run mode (Market order)
+            'remaining': 0  # Asumes the whole order amount got filled (Market order)
     }
     
     return order
   
 
 @retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
-def place_order(exchange, symbol, price, amount_in_usd, dry_run=True):
-    # Returns a dictionary with the information of the order placed
+def place_order(exchange, symbol, price, amount_in_usd, previous_orders, increase_amount_by=0, dry_run=True):
+    """ Returns a dictionary with the information of the order placed
+    """
     
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
     amount = amount_in_usd / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
+
+    if symbol in previous_orders and increase_amount_by > 0:
+        amount += increase_amount_by / price
     
     if dry_run:
         order = get_dummy_order(symbol, order_type, side, price, amount)
     else:
         # extra params and overrides if needed
-        params = {
-            'test': dry_run,  # test if it's valid, but don't actually place it
-        }
+        params = {'test': dry_run,}  # test if it's valid, but don't actually place it
 
         try:
             order = exchange.create_order(symbol, order_type, side, amount, price, params)
@@ -73,7 +74,7 @@ def place_order(exchange, symbol, price, amount_in_usd, dry_run=True):
 
 
 def short_summary(order, pct_chg) -> str:
-    """ "
+    """
     Returns a brief description of an order
     order param is a dict with the structure defined in
     https://github.com/ccxt/ccxt/wiki/Manual#order-structure
@@ -89,6 +90,9 @@ def short_summary(order, pct_chg) -> str:
 
 
 def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
+    """Returns True if price in new_order is better (min_discount cheaper) 
+    than the price in previous_order, False otherwise
+    """
     assert min_discount > 0, 'min_discount should be a positive number'
     
     discount = new_order['price'] / previous_order['price'] - 1
