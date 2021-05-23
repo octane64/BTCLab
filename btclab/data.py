@@ -81,5 +81,6 @@ if __name__ == '__main__':
         }
     )
     
-    df = get_close_prices(binance, ['ADA/USDT', 'DOGE/USDT'], 10)
+    df = get_close_prices(binance, ['ADA/USDT', 'DOT/USDT', 'BTC/USDT'], 300)
     print(df.tail(15))
+    df.to_csv('crypto.csv')
