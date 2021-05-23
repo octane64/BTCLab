@@ -4,6 +4,7 @@ from typing import List
 from datetime import datetime
 import utils
 import ccxt
+import pickle
 from datetime import datetime, timedelta
 
 
@@ -20,7 +21,7 @@ def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
             ...
             [1534982400000, 0.08926, 0.0942, 0.08835, 0.09232, 127991686.6]
         ],
-        "DOT/USDT": [
+        "DOT/USDT": [ 
             [1620086400000, 1.3627, 1.3673, 1.2557, 1.2698, 421500877.62],
             [1620259200000, 1.4799, 1.7, 1.4288, 1.6491, 1342973403.72],
             ...
@@ -29,11 +30,27 @@ def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
     }
     """
 
-    data = {}
+    try:
+        data = pickle.load(open('ohlcv.pkl', 'rb'))
+    except FileNotFoundError:
+        data = {}
+
     if exchange.has['fetchOHLCV']:
         for symbol in symbols:
-            time.sleep (exchange.rateLimit / 1000) # time.sleep wants seconds
-            data[symbol] = exchange.fetch_ohlcv(symbol, '1d', limit=num_of_days)
+            if symbol in data:
+                latest_date_ts = data[symbol][-1][0] / 1000
+                latest_date = datetime.fromtimestamp(latest_date_ts)
+                days_since = (datetime.now() - latest_date).days
+                
+                # Only retrieve data for the days after the latest day found in ohlcv.pkl for each symbol
+                if days_since > 0:
+                    time.sleep (exchange.rateLimit / 1000) # time.sleep wants seconds
+                    new_data_for_symbol = exchange.fetch_ohlcv(symbol, '1d', limit=days_since)
+                    data[symbol].extend(new_data_for_symbol)
+            else:
+                data[symbol] = exchange.fetch_ohlcv(symbol, '1d', limit=num_of_days)
+
+    pickle.dump(data, open('ohlcv.pkl', 'wb'))
 
     return data
 
@@ -64,5 +81,5 @@ if __name__ == '__main__':
         }
     )
     
-    df = get_close_prices(binance, ['ADA/USDT', 'DOT/USDT', 'BTC/USDT'], 300)
+    df = get_close_prices(binance, ['ADA/USDT', 'DOGE/USDT'], 10)
     print(df.tail(15))

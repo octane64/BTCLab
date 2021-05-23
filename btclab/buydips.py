@@ -2,30 +2,45 @@ import os
 import time
 import logging
 import ccxt
-from retry.api import retry, retry_call
 import typer
 import logging
-from typing import List
 import crypto
 import utils
 import db
 from logconf import logger
+from retry.api import retry, retry_call
 from datetime import datetime, timedelta
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
 config = utils.get_config()
 
-def print_header(symbols, freq,  amount_usd, min_drop, min_next_drop, dry_run):
-    title = 'Crypto prices monitor running. Hit q to quit'
+
+def print_header(symbols, freq,  amount_usd, increase_amount_by, min_drop, min_next_drop, dry_run, quote_currency, orders):
+    title = 'Crypto prices monitor running'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
-    if dry_run:
-        print('Running in summulation mode\n')
     
-    print(f'1) Tracking price changes in: {" ".join(symbols)} every {freq} minutes')
-    print(f'2) Any drop of {min_drop}% or more will trigger a buy order of {amount_usd} [Symbol]/USDT')
-    print(f'3) Any further drop of more than {min_next_drop}% (relative to prev buy) will also be bought')
+    start_msg = 'Starting new session'
+    if dry_run:
+        start_msg += ' (Running in simmulation mode)'
     print()
+    print(start_msg)
+    print(f'- Tracking price drops in: {", ".join(symbols)}')
+    print(f'- Min drop level set to {min_drop}% for the first buy')
+    print(f'- Additional drop level of {min_next_drop}% for symbols already bought')
+    print(f'- The amount to buy on each order will be {amount_usd} {quote_currency}')
+    if increase_amount_by > 0:
+        print(f'- Amount will increase by {increase_amount_by} {quote_currency} on orders of previoulsy bought symbols')
+    print('- Run with --verbose option to see more detail')
+    print('- Run with --help to see all options\n')
+
+    if orders:
+        print('You previously bought:')
+        for key, value in orders.items():
+            print(f'- {key} -> {value["amount"]} @ {value["price"]}')
+
+    print(f'\nChecking for new price drops every {freq} minutes... Hit Ctrl + C to exit')
+    typer.echo()
 
 
 def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
@@ -45,7 +60,7 @@ def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
 
 @retry((RequestTimeout, NetworkError), tries=8, delay=15, backoff=2, logger=logger)
 def main(
-        symbols: List[str] = typer.Argument(None, 
+        symbols: list[str] = typer.Argument(None, 
             help='The symbols you want to buy if they dip enough, separated by spaces. Either use pairs like '\
                  'BTC/USDT ETH/USDT or main symbols withouth a quote currency. e.g: BTC ETH', show_default=False),
         amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', '-a', 
@@ -92,12 +107,6 @@ def main(
     symbols = [s.upper() for s in symbols]
     symbols = [f'{s}/{quote_currency}' if '/' not in s else s for s in symbols]
     
-    start_msg = 'Starting new session'
-    if dry_run:
-        start_msg += ' (Running in simmulation mode)'
-    print()
-    print(start_msg)
-    
     api_key = os.environ.get('BINANCE_API_KEY')
     api_secret = os.environ.get('BINANCE_API_SECRET')
     if api_key is None or api_secret is None:
@@ -134,22 +143,7 @@ def main(
     else:
         orders = db.get_orders()
 
-    print(f'- Tracking price drops in: {", ".join(symbols)}')
-    print(f'- Min drop level set to {min_drop}% for the first buy')
-    print(f'- Additional drop level of {min_next_drop}% for symbols already bought')
-    print(f'- The amount to buy on each order will be {amount_usd} {quote_currency}')
-    if increase_amount_by > 0:
-        print(f'- Amount will increase by {increase_amount_by} {quote_currency} on orders of previoulsy bought symbols')
-    print('- Run with --verbose option to see more detail')
-    print('- Run with --help to see all options\n')
-
-    if orders:
-        print('You previously bought:')
-        for key, value in orders.items():
-            print(f'- {key} -> {value["amount"]} @ {value["price"]}')
-
-    print(f'\nChecking for new price drops every {freq} minutes... Hit Cmd/Ctrl + C to exit')
-    typer.echo()
+    print_header(symbols, freq, amount_usd, increase_amount_by, min_drop, min_next_drop, dry_run, quote_currency, orders)
 
     while True:
         tickers = binance.fetch_tickers(symbols)

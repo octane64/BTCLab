@@ -48,11 +48,12 @@ def place_order(exchange, symbol, price, amount_in_usd, previous_orders, increas
     
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
-    amount = amount_in_usd / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
 
     if symbol in previous_orders and increase_amount_by > 0:
-        amount += increase_amount_by / price
+        prev_amount_in_usd = previous_orders[symbol]['amount'] * price
+        amount_in_usd = prev_amount_in_usd + increase_amount_by
     
+    amount = amount_in_usd / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
     if dry_run:
         order = get_dummy_order(symbol, order_type, side, price, amount)
     else:
