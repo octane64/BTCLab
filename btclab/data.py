@@ -38,7 +38,7 @@ def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
     return data
 
 
-def get_close_prices(exchange, symbols: list[str], num_of_days: int) -> pd.DataFrame:
+def get_close_prices(exchange, symbols: List[str], num_of_days: int) -> pd.DataFrame:
     """Returns a Pandas dataframe with close prices for the symbols provided"""
     data = get_data(exchange, symbols, num_of_days)
     
@@ -66,3 +66,4 @@ if __name__ == '__main__':
     
     df = get_close_prices(binance, ['ADA/USDT', 'DOT/USDT', 'BTC/USDT'], 300)
     print(df.tail(15))
+    df.to_csv('crypto.csv')
