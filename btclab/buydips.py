@@ -191,7 +191,7 @@ def main(
             else:
                 logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]:.1f}%)')
 
-        logger.debug(f'Checking again for price drops in {freq} minutes...')
+        logger.debug(f'Checking again for price drops in {freq} minutes...\n')
         time.sleep(freq * 60)
 
 
