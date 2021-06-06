@@ -3,7 +3,7 @@
 /.vscode
 __pycache__/
 /secrets.py
-/config.yaml
+/btclab/config.yaml
 /env
 *.pkl
 app.log
