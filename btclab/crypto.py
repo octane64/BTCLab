@@ -5,13 +5,13 @@ from logconf import logger
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
-@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
+@retry(NetworkError, delay=15, jitter=5, logger=logger)
 def get_non_supported_symbols(exchange, symbols: List) -> set:
     exchange.load_markets()
     return set(symbols).difference(set(exchange.symbols))
 
 
-@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
+@retry(NetworkError, delay=15, jitter=5, logger=logger)
 def get_balance(exchange, currency: str) -> float:
     balance = exchange.fetch_balance()[currency]['free']
     return balance
@@ -41,7 +41,22 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     return order
   
 
-@retry(NetworkError, tries=5, delay=10, backoff=2, logger=logger)
+def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
+    """Returns true if symbol was bought within the last 24 hours, false otherwise
+    """
+    if symbol in orders and ((dry_run == True and orders[symbol]['id'] == 'DummyOrder') or \
+                                not dry_run and orders[symbol]['id'] != 'DummyOrder'):
+            now = datetime.now()
+            timestamp = orders[symbol]['timestamp']
+            if '.' not in str(timestamp):
+                timestamp /= 1000
+            bought_on = datetime.fromtimestamp(timestamp)
+            diff = now - bought_on
+            return diff.days <= 1
+    return False 
+
+
+@retry(NetworkError, delay=15, jitter=5, logger=logger)
 def place_order(exchange, symbol, price, amount_in_usd, previous_orders, increase_amount_by=0, dry_run=True):
     """ Returns a dictionary with the information of the order placed
     """
@@ -49,7 +64,7 @@ def place_order(exchange, symbol, price, amount_in_usd, previous_orders, increas
     order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
 
-    if symbol in previous_orders and increase_amount_by > 0:
+    if bought_less_than_24h_ago(symbol, previous_orders, dry_run) and increase_amount_by > 0:
         prev_amount_in_usd = previous_orders[symbol]['amount'] * price
         amount_in_usd = prev_amount_in_usd + increase_amount_by
     

@@ -43,22 +43,7 @@ def print_header(symbols, freq,  amount_usd, increase_amount_by, min_drop, min_n
     typer.echo()
 
 
-def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
-    """Returns true if symbol was bought within the last 24 hours, false otherwise
-    """
-    if symbol in orders and ((dry_run == True and orders[symbol]['id'] == 'DummyOrder') or \
-                                not dry_run and orders[symbol]['id'] != 'DummyOrder'):
-            now = datetime.now()
-            timestamp = orders[symbol]['timestamp']
-            if '.' not in str(timestamp):
-                timestamp /= 1000
-            bought_on = datetime.fromtimestamp(timestamp)
-            diff = now - bought_on
-            return diff.days <= 1
-    return False
-
-
-@retry((RequestTimeout, NetworkError), tries=8, delay=15, backoff=2, logger=logger)
+@retry((RequestTimeout, NetworkError), delay=15, jitter=5, logger=logger)
 def main(
         symbols: list[str] = typer.Argument(None, 
             help='The symbols you want to buy if they dip enough, separated by spaces. Either use pairs like '\
@@ -66,7 +51,7 @@ def main(
         amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', '-a', 
             help='Amount to buy of symbol in base currency'), 
         increase_amount_by: float = typer.Option(config['General']['increase_amount_by'], '--increase-amount-by', '-i', 
-            help='The increase in the amount to buy of a previously bought symbol'), 
+            help='The increase in the amount to buy when a symbol was already bought in the last 24 hours'), 
         freq: float = typer.Option(config['General']['frequency'], '--freq', '-f',
             help='Frequency in minutes to check for new price drops'),
         min_drop: float = typer.Option(config['General']['min_drop'], '--min-drop', '-m', 
@@ -151,7 +136,7 @@ def main(
         for symbol, ticker in tickers.items():
             buy_first_time = False
             buy_again = False
-            if symbol in orders and bought_less_than_24h_ago(symbol, orders, dry_run):
+            if symbol in orders and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_next_drop
                 
