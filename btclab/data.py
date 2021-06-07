@@ -1,6 +1,5 @@
 import time
 import pandas as pd
-from typing import List
 from datetime import datetime
 import utils
 import ccxt
@@ -8,7 +7,7 @@ import pickle
 from datetime import datetime, timedelta
 
 
-def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
+def get_data(exchange, symbols: list[str], num_of_days: int = 1000) -> dict:
     """Returns a dictionary with OHLCV data for the last num_of_days of each symbol
     Data for each days is a list with: [timestamp, open, high, low, close, volume]
     Max 1000 days of data per symbol will be returned
@@ -55,7 +54,7 @@ def get_data(exchange, symbols: List[str], num_of_days: int = 1000) -> dict:
     return data
 
 
-def get_close_prices(exchange, symbols: List[str], num_of_days: int) -> pd.DataFrame:
+def get_close_prices(exchange, symbols: list[str], num_of_days: int = 1000) -> pd.DataFrame:
     """Returns a Pandas dataframe with close prices for the symbols provided"""
     data = get_data(exchange, symbols, num_of_days)
     
@@ -70,6 +69,14 @@ def get_close_prices(exchange, symbols: List[str], num_of_days: int) -> pd.DataF
     return df
 
 
+def get_std_dev(symbol, exchange, symbols: list[str], ) -> float:
+    close_prices = get_close_prices(exchange, symbols)
+    rets = close_prices.pct_change()
+
+    return rets[symbol].std()
+
+
+
 if __name__ == '__main__':
     config = utils.get_config()
     import os
@@ -81,6 +88,6 @@ if __name__ == '__main__':
         }
     )
     
-    df = get_close_prices(binance, ['ADA/USDT', 'DOT/USDT', 'BTC/USDT'], 300)
-    print(df.tail(15))
-    df.to_csv('crypto.csv')
+    std = get_std_dev('XMR/USDT', binance, ['XMR/USDT'])
+    print(f'XMR/USDT 2 Std dev: {std * 2:.2%}')
+    # df.to_csv('crypto.csv')
