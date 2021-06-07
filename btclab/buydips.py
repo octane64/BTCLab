@@ -77,9 +77,9 @@ def main(
     if verbose:
         logger.setLevel(logging.DEBUG)
 
-    bot_token = config['IM']['telegram_bot_token']
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if bot_token is None:
-        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        bot_token = config['IM']['telegram_bot_token']
     if bot_token is None:
         logging.error('Set the Telegram bot token in the config.yaml or in the TELEGRAM_BOT_TOKEN environment variable')
         raise typer.Exit(code=-1)
@@ -165,7 +165,7 @@ def main(
                     db.save(orders)
                     msg = f'Buying ${order["amount"]*order["price"]:.1f} of {symbol} @ {ticker["last"]:,}'
                     if buy_again:
-                        msg += f': {discount_pct:.1f}% from previous buy'
+                        msg += f': {discount_pct:.1f}% down from previous buy'
                     else:
                         msg += f': {ticker["percentage"]:.1f}% lower than 24h ago'
                     if dry_run:
