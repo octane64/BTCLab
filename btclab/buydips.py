@@ -6,10 +6,11 @@ import typer
 import logging
 import crypto
 import utils
+import data
 import db
 from logconf import logger
 from retry.api import retry, retry_call
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
@@ -128,18 +129,26 @@ def main(
     else:
         orders = db.get_orders()
 
+    if min_drop == -1:
+        std_devs = data.get_std_dev(binance, symbols)
+
     print_header(symbols, freq, amount_usd, increase_amount_by, min_drop, min_next_drop, dry_run, quote_currency, orders)
 
     while True:
         tickers = binance.fetch_tickers(symbols)
+        # now = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
+        # print(f'Last check: {now} - Hit Ctrl + C to exit', end='\r')
         
         for symbol, ticker in tickers.items():
             buy_first_time = False
             buy_again = False
+
+            if min_drop == -1:
+                min_drop = std_devs[symbol] * 100 * 2 # Two standard deviations
+
             if symbol in orders and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_next_drop
-                
             else:
                 buy_first_time = ticker['percentage'] < -min_drop
             
