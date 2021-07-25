@@ -8,16 +8,17 @@ import crypto
 import utils
 import data
 import db
+from datetime import datetime
 from logconf import logger
-from retry.api import retry, retry_call
-# from datetime import datetime, timedelta
+from retry.api import retry
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
 config = utils.get_config()
 
 
-def print_header(symbols, freq,  amount_usd, increase_amount_by, min_drop, min_next_drop, dry_run, quote_currency, orders):
+def print_header(symbols, freq,  amount_usd, increase_amount_by, min_drop, std_devs, 
+                min_next_drop, dry_run, quote_currency, orders):
     title = 'Crypto prices monitor running'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
     
@@ -26,10 +27,20 @@ def print_header(symbols, freq,  amount_usd, increase_amount_by, min_drop, min_n
         start_msg += ' (Running in simmulation mode)'
     print()
     print(start_msg)
+
     print(f'- Tracking price drops in: {", ".join(symbols)}')
-    print(f'- Min drop level set to {min_drop}% for the first buy')
+    
+    msg_min_drop = ''
+    # min_drop_suffix = ''
+    if isinstance(min_drop, str) and 'SD' in min_drop.upper():
+        num_of_sd = float(min_drop.replace('SD', ''))
+        for s in symbols:
+            msg_min_drop += f'{s}: {num_of_sd * std_devs[s]:.2%}, '
+
+    print(f'- Min drop level set to {min_drop.replace("SD", " std dev")} {msg_min_drop} for the first buy')
     print(f'- Additional drop level of {min_next_drop}% for symbols already bought')
     print(f'- The amount to buy on each order will be {amount_usd} {quote_currency}')
+    
     if increase_amount_by > 0:
         print(f'- Amount will increase by {increase_amount_by} {quote_currency} on orders of previoulsy bought symbols')
     print('- Run with --verbose option to see more detail')
@@ -55,8 +66,8 @@ def main(
             help='The increase in the amount to buy when a symbol was already bought in the last 24 hours'), 
         freq: float = typer.Option(config['General']['frequency'], '--freq', '-f',
             help='Frequency in minutes to check for new price drops'),
-        min_drop: float = typer.Option(config['General']['min_drop'], '--min-drop', '-m', 
-            help='Min drop in percentage in the last 24 hours for placing a buy order'),
+        min_drop: str = typer.Option(config['General']['min_drop'], '--min-drop', '-m', 
+            help='Min drop in percentage in the last 24 hours or in standard deviations (Ex. 2SD) for placing a buy order'),
         min_next_drop: float = typer.Option(config['General']['min_next_drop'], '--min-next-drop', '-n',
             help='The min additional drop in percentage to buy a symbol previoulsy bought'),
         quote_currency: str = typer.Option('USDT', help='Quote currency to use when none is given in symbols list'),
@@ -68,10 +79,10 @@ def main(
 
     """
     Example usage:
-    python buydips.py BTC ETH DOT --freq 10 --min-drop 7 --min-aditional-drop 2
+    python buydips.py BTC ETH DOT --freq 10 --min-drop 2SD --min-aditional-drop 2
 
     Start checking prices of BTC/USDT ETH/USDT and DOT/USDT every 10 minutes
-    Buy the ones with a drop in the last 24h greater than 7%
+    Buy the ones with a drop in the last 24h greater than two standard deviations (2SD)
     If a symbols was previouly bought, buy again only if it is down 2% from last buy price
     """
 
@@ -81,6 +92,7 @@ def main(
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if bot_token is None:
         bot_token = config['IM']['telegram_bot_token']
+    
     if bot_token is None:
         logging.error('Set the Telegram bot token in the config.yaml or in the TELEGRAM_BOT_TOKEN environment variable')
         raise typer.Exit(code=-1)
@@ -106,7 +118,6 @@ def main(
     if api_secret is None:
         api_secret = typer.prompt('Enter your Binance API secret').trim()
 
-    # print_header(symbols, freq, amount_usd, min_drop, min_next_drop, dry_run)
     binance = ccxt.binance(
         {
             'apiKey': api_key,
@@ -129,28 +140,30 @@ def main(
     else:
         orders = db.get_orders()
 
-    if min_drop == -1:
-        std_devs = data.get_std_dev(binance, symbols)
+    std_devs = data.get_std_dev(binance, symbols)
+    min_drop_in_sd = isinstance(min_drop, str) and 'SD' in min_drop
 
-    print_header(symbols, freq, amount_usd, increase_amount_by, min_drop, min_next_drop, dry_run, quote_currency, orders)
+    print_header(symbols, freq, amount_usd, increase_amount_by, min_drop, 
+                std_devs, min_next_drop, dry_run, quote_currency, orders)
 
     while True:
         tickers = binance.fetch_tickers(symbols)
-        # now = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
-        # print(f'Last check: {now} - Hit Ctrl + C to exit', end='\r')
+        now = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
+        print(f'Last check: {now} - Hit Ctrl + C to exit', end='\r')
         
         for symbol, ticker in tickers.items():
             buy_first_time = False
             buy_again = False
 
-            if min_drop == -1:
-                min_drop = std_devs[symbol] * 100 * 2 # Two standard deviations
+            if min_drop_in_sd:
+                num_of_sd = float(''.join(filter(str.isdigit, min_drop)))
+                min_drop = str(std_devs[symbol] * 100 * num_of_sd)
 
             if symbol in orders and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
                 discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
                 buy_again = discount_pct < -min_next_drop
             else:
-                buy_first_time = ticker['percentage'] < -min_drop
+                buy_first_time = ticker['percentage'] < -float(min_drop)
             
             if buy_first_time or buy_again:
                 try:
