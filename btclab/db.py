@@ -12,7 +12,7 @@ def get_orders() -> dict:
     try:
         orders = pickle.load(open('orders.pkl', 'rb'))
     except FileNotFoundError:
-        orders = {}
+        orders = {'DCA': {}, 'Non-DCA': {}}
     
     return orders
 

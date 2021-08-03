@@ -12,7 +12,7 @@ import db
 from datetime import datetime
 from logconf import logger
 from retry.api import retry
-from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
+from ccxt.base.errors import NetworkError, RequestTimeout
 
 
 def get_config():
@@ -53,7 +53,7 @@ def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
     return discount < 0 and abs(discount) > min_discount/100
 
 
-def print_header(config, symbols, min_drop_pct, orders):
+def print_header(config, symbols, min_drop, min_drop_pct, orders):
     title = 'Crypto prices monitor running...'
     print(f'\n{"-" * len(title)}\n{title}\n{"-" * len(title)}')
     
@@ -65,14 +65,17 @@ def print_header(config, symbols, min_drop_pct, orders):
 
     print(f'- Tracking price drops in: {", ".join(config["General"]["tickers"])}')
     
-    msg_min_drop = ''
-    for s in symbols:
-        msg_min_drop += f'{s}: {min_drop_pct[s]:.2}, '
+    if 'sd' in min_drop.lower().strip():
+        msg_min_drop = ''
+        for s in symbols:
+            msg_min_drop += f'{s}: {min_drop_pct[s]:.2f}%, '
+    else:
+        msg_min_drop = min_drop + '%'
 
     quote_currency = config['General']['quote_currency']
-    print(f'- Min drop level set to {config["General"]["min_drop"]}: {msg_min_drop} for the first buy')
+    print(f'- Min drop level set to {msg_min_drop} for the first buy')
     print(f'- Additional drop level of {config["General"]["min_next_drop"]}% for symbols already bought')
-    print(f'- The amount to buy on each order will be {config["General"]["order_amount_usd"]} {quote_currency}')
+    print(f'- The amount to buy on each order will be {config["General"]["quote_ccy_amount"]} of quote currency')
     
     increase_amount_by = config['General']['increase_amount_by']
     
@@ -82,9 +85,9 @@ def print_header(config, symbols, min_drop_pct, orders):
     print('- Run with --verbose option to see more detail')
     print('- Run with --help to see all options\n')
 
-    if orders:
-        print('You previously bought:')
-        for key, value in orders.items():
+    if orders['Non-DCA']:
+        print('You previously bought on price dips:')
+        for key, value in orders['Non-DCA'].items():
             print(f'- {key} -> {value["amount"]} @ {value["price"]}')
 
     print(f'\nChecking for new price drops every {config["General"]["frequency"]} minutes... Hit Ctrl + C to exit')
@@ -102,7 +105,7 @@ def get_min_drops_in_pct(symbols, min_drop: str, binance) -> dict:
     std_devs = data.get_std_dev(binance, symbols)
     min_drop = min_drop.replace('%', '').replace(' ', '')
     if 'sd' in min_drop.lower():
-        num_of_sd = float(''.join(filter(str.isdigit, min_drop)))
+        num_of_sd = float(min_drop.lower().replace('sd', '').replace(' ', ''))
         # for symbol in symbols:
             # min_drop_pcts[symbol] = num_of_sd * std_devs[symbol] * 100
         min_drop_pcts = {symbol: num_of_sd * std_devs[symbol] * 100 for symbol in symbols}
@@ -112,12 +115,24 @@ def get_min_drops_in_pct(symbols, min_drop: str, binance) -> dict:
     return min_drop_pcts
 
 
+def get_next_order_quote_ccy_amount(symbol: str, orders: dict, base_amount: float, 
+                                            increase_amount_by: float) -> float:
+    """Returns the amount in quote currency for the next order of a given symbol
+    """
+    if symbol not in orders or increase_amount_by == 0:
+        return base_amount
+
+    prev_amount = orders['Non-DCA'][symbol]['price'] * orders['Non-DCA'][symbol]['amount']
+    return prev_amount + increase_amount_by
+
+
 @retry((RequestTimeout, NetworkError), delay=15, jitter=5, logger=logger)
 def main(
         symbols: list[str] = typer.Argument(None, 
             help='The symbols you want to buy, separated by spaces. Either use pairs like '\
                 'BTC/USDT ETH/USDT or main symbols without a quote currency. e.g: BTC ETH', show_default=False),
-        amount_usd: float = typer.Option(config['General']['order_amount_usd'], '--amount-usd', '-a', 
+        quote_currency: str = typer.Option('USDT', help='Quote currency to use when none is given in symbols list'),
+        quote_ccy_amount: float = typer.Option(config['General']['quote_ccy_amount'], '--amount-usd', '-a', 
             help='Amount to buy of symbol in base currency'), 
         increase_amount_by: float = typer.Option(config['General']['increase_amount_by'], '--increase-amount-by', '-i', 
             help='The increase in the amount to buy when a symbol was already bought in the last 24 hours'), 
@@ -127,9 +142,11 @@ def main(
             help='Min drop in the last 24h (in standard deviations, ex. 2SD, or in %) for placing a buy order'),
         min_next_drop: float = typer.Option(config['General']['min_next_drop'], '--min-next-drop', '-n',
             help='The min additional drop in percentage to buy a symbol previoulsy bought'),
-        quote_currency: str = typer.Option('USDT', help='Quote currency to use when none is given in symbols list'),
         dry_run: bool = typer.Option(config['General']['dry_run'], 
             help='Run in simmulation mode. Don\'t buy anything'),
+        dca_amount: float = typer.Option(config['General']['dca_amount'], '--dca-amount', 
+            help='Amount to buy periodically to dollar cost average or DCA'),
+        dca_freq: int = typer.Option(config['General']['dca_freq'], '--dca-freq', help='Days to wait between DCA buys'),
         reset_cache: bool = typer.Option(False, '--reset-cache', '-r', help='Reset info of previous operations'),
         silent: bool = typer.Option(False, '--silent', '-s', help='Silent mode. Do not send notifications to chat'),
         verbose: bool = typer.Option(False, '--verbose', '-v', help='Verbose mode')):
@@ -178,6 +195,18 @@ def main(
     while config['Exchange']['api_secret'] is None or config['Exchange']['api_secret'].strip() == '':
         config['Exchange']['api_secret'] = typer.prompt('Enter your Binance API secret:').strip()
 
+    if config['General']['increase_amount_by'] != increase_amount_by:
+        config['General']['increase_amount_by'] = increase_amount_by
+    
+    if config['General']['frequency'] != freq:
+        config['General']['frequency'] = freq
+
+    if config['General']['dca_amount'] != dca_amount:
+        config['General']['dca_amount'] = dca_amount
+    
+    if config['General']['dca_freq'] != dca_freq:
+        config['General']['dca_freq'] = dca_freq
+
     if verbose:
         logger.setLevel(logging.DEBUG)
 
@@ -198,55 +227,95 @@ def main(
     # Get min drop in % for each symbol
     min_drops_pct = get_min_drops_in_pct(symbols, min_drop, binance)
 
-    print_header(config, symbols, min_drops_pct, orders)
+    print_header(config, symbols, min_drop, min_drops_pct, orders)
 
     while True:
         now = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
-        print(f'Last check: {now} - Hit Ctrl + C to exit', end='\r')
+        if not verbose:
+            print(f'Last check: {now} - Hit Ctrl + C to exit', end='\r')
         
         for symbol in symbols:
             ticker = binance.fetch_ticker(symbol)
+            quote_ccy = symbol.split('/')[1]
+            asset = symbol.split('/')[0]
+            balance = crypto.get_balance(binance, quote_ccy)
+            recently_bought = False
             buy_first_time = False
             buy_again = False
 
-            if symbol in orders and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
-                discount_pct = (ticker['last'] / orders[symbol]['price'] - 1) * 100
+            # Check if it's time for a periodic buy (DCA)
+            days_since_last_dca = 0
+            last_dca_order = None
+            if dca_amount > 0 and symbol in orders['DCA']:
+                last_dca_order = orders['DCA'][symbol]
+                timestamp = last_dca_order['timestamp']
+                if '.' not in str(timestamp):
+                    timestamp /= 1000
+                diff = datetime.now() - datetime.fromtimestamp(timestamp)
+                days_since_last_dca = diff.days
+            
+            if dca_amount > 0 and (last_dca_order is None or days_since_last_dca > dca_freq):
+                new_dca_order = crypto.place_order(exchange=binance, 
+                                                    symbol=symbol, 
+                                                    price=ticker['last'], 
+                                                    quote_ccy_amount=config['General']['dca_amount'],
+                                                    order_type='limit',
+                                                    dry_run=dry_run)
+                orders['DCA'][symbol] = new_dca_order
+                db.save(orders)
+                msg = f'Buying {new_dca_order["amount"]:.5f} of {symbol} @ {ticker["last"]} '
+                msg += f'after {days_since_last_dca:.0f} days from last periodic buy'
+                logger.info(msg)
+                if not silent:
+                    utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
+
+            if symbol in orders['Non-DCA'] and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
+                amount = get_next_order_quote_ccy_amount(symbol, orders['Non-DCA'], quote_ccy_amount, increase_amount_by)
+                discount_pct = (ticker['last'] / orders['Non-DCA'][symbol]['price'] - 1) * 100
+                recently_bought = True
                 buy_again = discount_pct < -min_next_drop
             else:
+                amount = quote_ccy_amount
                 buy_first_time = ticker['percentage'] < -float(min_drops_pct[symbol])
             
+            if balance < amount:
+                msg = f'Insufficient funds. Attempting to buy {quote_ccy} {amount:.2f} of {asset} but only {quote_ccy} {balance:.2f} are available.'
+                msg += f'Trying again in {config["General"]["retry_after"]} minutes...'
+                logger.warning(msg)
+                if not silent:
+                    utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
+                time.sleep(config['General']['retry_after'] * 60)
+                continue
+
             if buy_first_time or buy_again:
-                try:
-                    order = crypto.place_order(exchange=binance, 
-                                                symbol=symbol, 
-                                                price=ticker['last'], 
-                                                amount_in_usd=amount_usd,
-                                                previous_orders=orders,
-                                                increase_amount_by=increase_amount_by,
-                                                dry_run=dry_run)
-                except InsufficientFunds:
-                    retry_after = config['General']['retry_after']
-                    msg = f'Insufficient funds. Trying again in {retry_after} minutes...'
-                    logger.warning(msg)
-                    if not silent:
-                        utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
-                    time.sleep(retry_after * 60)
-                    continue
+                order = crypto.place_order(exchange=binance, 
+                                            symbol=symbol, 
+                                            price=ticker['last'], 
+                                            quote_ccy_amount=amount,
+                                            order_type='limit',
+                                            dry_run=dry_run)
+                orders['Non-DCA'][symbol] = order
+                db.save(orders)
+                msg = f'Buying ${order["amount"]*order["price"]:.1f} of {symbol} @ {ticker["last"]:,}'
+                if buy_again:
+                    msg += f': {discount_pct:.1f}% down from previous buy'
                 else:
-                    orders[symbol] = order
-                    db.save(orders)
-                    msg = f'Buying ${order["amount"]*order["price"]:.1f} of {symbol} @ {ticker["last"]:,}'
-                    if buy_again:
-                        msg += f': {discount_pct:.1f}% down from previous buy'
-                    else:
-                        msg += f': {ticker["percentage"]:.1f}% lower than 24h ago'
-                    if config['General']['dry_run']:
-                        msg += ' (Dummy mode)'
-                    logger.info(msg)
-                    if not silent:
-                        utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
+                    msg += f': {ticker["percentage"]:.1f}% lower than 24h ago'
+                if config['General']['dry_run']:
+                    msg += ' (Dummy mode)'
+                logger.info(msg)
+                if not silent:
+                    utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
             else:
-                logger.debug(f'{symbol} currently selling at {ticker["last"]} ({ticker["percentage"]:.1f}%)')
+                if recently_bought:
+                    previous_price = orders['Non-DCA']['symbol']['price']
+                    target_price = orders['Non-DCA']['symbol']['price'] * (1 - min_next_drop/100)
+                    msg = f'{symbol} bought recently @ {previous_price:.5f}. '
+                    msg += f'Will buy more if it drops to {target_price:.5f} (-{min_next_drop}%)'
+                else:
+                    msg = f'{symbol} 24h change is {ticker["percentage"]:.1f}%. '
+                    msg += f'Will buy if it drops more than -{float(min_drops_pct[symbol]):.2f}%'
+                logger.debug(msg)
 
         logger.debug(f'Checking again for price drops in {freq} minutes...\n')
         time.sleep(freq * 60)
@@ -255,12 +324,12 @@ def main(
 def get_previous_orders(reset_cache, symbols):
     """Returns previous orders of symbols
     """
-    if reset_cache:
-        orders = {}
-        db.save(orders)
-    else:
+    orders = {'DCA': {}, 'Non-DCA': {}}
+    if not reset_cache:
         tmp = db.get_orders()
-        orders = {k: tmp[k] for k in tmp if k in symbols}
+        orders['Non-DCA'] = {k: tmp['Non-DCA'][k] for k in tmp['Non-DCA'] if k in symbols}
+        orders['DCA'] = {k: tmp['DCA'][k] for k in tmp['DCA'] if k in symbols}
+
     return orders
 
 

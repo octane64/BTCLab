@@ -20,20 +20,21 @@ def get_balance(exchange, currency: str) -> float:
 def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     """Returns a dictionary with the information of a dummy order. 
     The structure is the same as the one returned by the create_order function from ccxt library
+    https://ccxt.readthedocs.io/en/latest/manual.html#orders
     """
     right_now = datetime.now()
     order = {
             'id': 'DummyOrder',
             'datetime': right_now.isoformat(),
-            'timestamp': datetime.timestamp(right_now),
-            'lastTradeTimestamp': datetime.timestamp(right_now),
+            'timestamp': datetime.timestamp(right_now), # order placing/opening Unix timestamp in milliseconds
+            'lastTradeTimestamp': datetime.timestamp(right_now), # Unix timestamp of the most recent trade on this order
             'status': 'closed',
             'symbol': symbol,
             'type': order_type,
             'side': side,
             'price': price,
             'average': price,
-            'amount': amount,
+            'amount': amount, # 
             'filled': amount,
             'remaining': 0  # Asumes the whole order amount got filled (Market order)
     }
@@ -44,10 +45,10 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
 def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
     """Returns true if symbol was bought within the last 24 hours, false otherwise
     """
-    if symbol in orders and ((dry_run == True and orders[symbol]['id'] == 'DummyOrder') or \
-                                not dry_run and orders[symbol]['id'] != 'DummyOrder'):
+    if symbol in orders and ((dry_run == True and orders['Non-DCA'][symbol]['id'] == 'DummyOrder') or \
+                                not dry_run and orders['Non-DCA'][symbol]['id'] != 'DummyOrder'):
             now = datetime.now()
-            timestamp = orders[symbol]['timestamp']
+            timestamp = orders['Non-DCA'][symbol]['timestamp']
             if '.' not in str(timestamp):
                 timestamp /= 1000
             bought_on = datetime.fromtimestamp(timestamp)
@@ -57,18 +58,11 @@ def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
-def place_order(exchange, symbol, price, amount_in_usd, previous_orders, increase_amount_by=0, dry_run=True):
+def place_order(exchange, symbol, price, quote_ccy_amount, order_type, dry_run=True):
     """ Returns a dictionary with the information of the order placed
     """
-    
-    order_type = 'limit'  # or 'market'
     side = 'buy'  # or 'sell'
-
-    if bought_less_than_24h_ago(symbol, previous_orders, dry_run) and increase_amount_by > 0:
-        prev_amount_in_usd = previous_orders[symbol]['amount'] * price
-        amount_in_usd = prev_amount_in_usd + increase_amount_by
-    
-    amount = amount_in_usd / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
+    amount = quote_ccy_amount / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
     if dry_run:
         order = get_dummy_order(symbol, order_type, side, price, amount)
     else:
