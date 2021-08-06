@@ -252,8 +252,15 @@ def main(
             buy_first_time = False
             buy_again = False
 
-            if dca_amount > 0: 
-                dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, bot_token)
+            if dca_amount > 0:
+                if balance > dca_amount:
+                    dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, bot_token)
+                    balance = crypto.get_balance(binance, quote_ccy)
+                else:
+                    msg = f'Insufficient funds for DCA. Attempting to buy {quote_ccy} {dca_amount:.2f} of {asset} but only {quote_ccy} {balance:.2f} available.'
+                    logger.warning(msg)
+                    if not silent:
+                        utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
 
             if symbol in orders['Non-DCA'] and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
                 amount = get_next_order_quote_ccy_amount(symbol, orders['Non-DCA'], quote_ccy_amount, increase_amount_by)
@@ -265,8 +272,8 @@ def main(
                 buy_first_time = ticker['percentage'] < -float(min_drops_pct[symbol])
             
             if balance < amount:
-                msg = f'Insufficient funds. Attempting to buy {quote_ccy} {amount:.2f} of {asset} but only {quote_ccy} {balance:.2f} are available.'
-                msg += f'Trying again in {config["General"]["retry_after"]} minutes...'
+                msg = f'Insufficient funds for buying the dip. Attempting to buy {quote_ccy} {amount:.2f} of {asset} but only {quote_ccy} {balance:.2f} available.'
+                msg += f'\nTrying again in {config["General"]["retry_after"]} minutes...'
                 logger.warning(msg)
                 if not silent:
                     utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
@@ -341,10 +348,9 @@ def dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, 
         orders['DCA'][symbol] = new_dca_order
         if not dry_run:
             db.save(orders)
-        msg = f'Buying {new_dca_order["amount"]:.5f} of {symbol} @ {ticker["last"]} '
+        msg = f'DCA Buying {new_dca_order["amount"]:.5f} of {symbol} @ {ticker["last"]} '
         msg += f'after {days_since} days from last periodic buy'
         logger.info(msg)
-        
         if not silent:
             utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
 
