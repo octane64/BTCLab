@@ -4,13 +4,12 @@ import yaml
 import logging
 import ccxt
 import typer
-import dataclasses
 import logging
 import crypto
 import utils
 import data
 import db
-from datetime import date, datetime
+from datetime import datetime
 from logconf import logger
 from retry.api import retry
 from ccxt.base.errors import NetworkError, RequestTimeout
