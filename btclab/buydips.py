@@ -253,7 +253,7 @@ def main(
             buy_again = False
 
             if dca_amount > 0:
-                if balance > dca_amount:
+                if balance >= dca_amount:
                     dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, bot_token)
                     balance = crypto.get_balance(binance, quote_ccy)
                 else:
@@ -332,13 +332,11 @@ def days_from_last_dca(symbol, orders):
 
 
 def dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, bot_token):
-    """Returns true if it's time to place a new dollar-cost-average (DCA) 
-    order given previous orders and frequency in days, false otherwise
+    """Place a new dollar-cost-average (DCA) order given previous orders and frequency in days
     """
-    days_since = days_from_last_dca(symbol, orders)
-    last_dca_order = orders['DCA'].get(symbol, None)
+    days_since_last_dca = days_from_last_dca(symbol, orders)
 
-    if last_dca_order is None or days_since >= dca_freq:
+    if days_since_last_dca > 0 and days_since_last_dca == dca_freq:
         new_dca_order = crypto.place_order(exchange=binance, 
                                             symbol=symbol, 
                                             price=ticker['last'], 
@@ -349,7 +347,7 @@ def dca(dca_amount, symbol, orders, dca_freq, binance, ticker, dry_run, silent, 
         if not dry_run:
             db.save(orders)
         msg = f'DCA Buying {new_dca_order["amount"]:.5f} of {symbol} @ {ticker["last"]} '
-        msg += f'after {days_since} days from last periodic buy'
+        msg += f'after {days_since_last_dca} days from last periodic buy'
         logger.info(msg)
         if not silent:
             utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
