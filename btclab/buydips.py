@@ -79,7 +79,11 @@ def print_header(symbols, amount, increase_amount_by, freq, min_drop, min_next_d
     if len(orders['Non-DCA']) > 0:
         print('You previously bought on price dips:')
         for key, value in orders['Non-DCA'].items():
-            strdate = datetime.fromtimestamp(value["timestamp"]).strftime('%x %X')
+            # In case order timestamp is in milliseconds, convert to seconds
+            timestamp = value['timestamp']
+            if timestamp - int(timestamp) == 0:
+                timestamp /= 1000
+            strdate = datetime.fromtimestamp(timestamp).strftime('%x %X')
             print(f'- {key} -> {value["amount"]:.5f} @ {value["price"]:,.2f} on {strdate}')
 
     print()
@@ -263,7 +267,7 @@ def main(
                         utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
 
             if symbol in orders['Non-DCA'] and crypto.bought_less_than_24h_ago(symbol, orders, dry_run):
-                amount = get_next_order_quote_ccy_amount(symbol, orders['Non-DCA'], quote_ccy_amount, increase_amount_by)
+                amount = get_next_order_quote_ccy_amount(symbol, orders, quote_ccy_amount, increase_amount_by)
                 discount_pct = (ticker['last'] / orders['Non-DCA'][symbol]['price'] - 1) * 100
                 recently_bought = True
                 buy_again = discount_pct < -min_next_drop
@@ -302,8 +306,8 @@ def main(
                     utils.send_msg(bot_token, config['IM']['telegram_chat_id'], msg)
             else:
                 if recently_bought:
-                    previous_price = orders['Non-DCA']['symbol']['price']
-                    target_price = orders['Non-DCA']['symbol']['price'] * (1 - min_next_drop/100)
+                    previous_price = orders['Non-DCA'][symbol]['price']
+                    target_price = orders['Non-DCA'][symbol]['price'] * (1 - min_next_drop/100)
                     msg = f'{symbol} bought recently @ {previous_price:.5f}. '
                     msg += f'Will buy more if it drops to {target_price:.5f} (-{min_next_drop}%)'
                 else:

@@ -45,11 +45,11 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
 def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
     """Returns true if symbol was bought within the last 24 hours, false otherwise
     """
-    if symbol in orders and ((dry_run == True and orders['Non-DCA'][symbol]['id'] == 'DummyOrder') or \
+    if symbol in orders['Non-DCA'] and ((dry_run == True and orders['Non-DCA'][symbol]['id'] == 'DummyOrder') or \
                                 not dry_run and orders['Non-DCA'][symbol]['id'] != 'DummyOrder'):
             now = datetime.now()
             timestamp = orders['Non-DCA'][symbol]['timestamp']
-            if '.' not in str(timestamp):
+            if timestamp - int(timestamp) == 0:
                 timestamp /= 1000
             bought_on = datetime.fromtimestamp(timestamp)
             diff = now - bought_on
