@@ -1,18 +1,21 @@
 import pickle
+from crypto import Strategy
 
-def save(orders: dict):
+
+def save(orders: dict, strategy: Strategy):
     """Saves the orders dictionary to a file"""
     
-    pickle.dump(orders, open('orders.pkl', 'wb'))
+    pickle.dump(orders, open(strategy.value + '_orders.pkl', 'wb'))
+    
 
 
-def get_orders() -> dict:
-    """Returns a dictionary with the orders on disk"""
+def get_orders(order_type: Strategy) -> dict:
+    """Returns a dictionary with the previously saved orders (the most recent for each symbol) """
     
     try:
-        orders = pickle.load(open('orders.pkl', 'rb'))
+        orders = pickle.load(open(order_type.value + '_orders.pkl', 'rb'))
     except FileNotFoundError:
-        orders = {'DCA': {}, 'Non-DCA': {}}
+        orders = {}
     
     return orders
 

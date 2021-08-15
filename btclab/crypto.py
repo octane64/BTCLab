@@ -1,8 +1,14 @@
+from enum import Enum
 from datetime import datetime
 from typing import List
 from retry import retry
 from logconf import logger
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
+
+
+class Strategy(Enum):
+    BUY_THE_DIPS = 'dip'
+    DCA = 'dca'
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
@@ -42,68 +48,46 @@ def get_dummy_order(symbol, order_type, side, price, amount) -> dict:
     return order
   
 
-def bought_less_than_24h_ago(symbol:str, orders: dict, dry_run: bool) -> bool:
-    """Returns true if symbol was bought within the last 24 hours, false otherwise
+def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
     """
-    if symbol in orders['Non-DCA'] and ((dry_run == True and orders['Non-DCA'][symbol]['id'] == 'DummyOrder') or \
-                                not dry_run and orders['Non-DCA'][symbol]['id'] != 'DummyOrder'):
-            now = datetime.now()
-            timestamp = orders['Non-DCA'][symbol]['timestamp']
-            if timestamp - int(timestamp) == 0:
-                timestamp /= 1000
-            bought_on = datetime.fromtimestamp(timestamp)
-            diff = now - bought_on
-            return diff.days <= 1
-    return False 
+    Returns true if symbol was bought within the last hours, false otherwise
+    """
+    if symbol not in orders:
+        return False    
+    
+    now = datetime.now()
+    timestamp = orders[symbol]['timestamp']
+    bought_on = datetime.fromtimestamp(timestamp/1000)
+    diff = now - bought_on
+    return diff.days <= hours
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
-def place_order(exchange, symbol, price, quote_ccy_amount, order_type, dry_run=True):
+def place_buy_order(exchange, symbol, price, order_cost, order_type, dry_run=True):
     """ Returns a dictionary with the information of the order placed
     """
-    side = 'buy'  # or 'sell'
-    amount = quote_ccy_amount / price # TODO Fix for symbols with quote a quote currency that is not USD or equivalents
-    if dry_run:
-        order = get_dummy_order(symbol, order_type, side, price, amount)
-    else:
-        # extra params and overrides if needed
-        params = {'test': dry_run,}  # test if it's valid, but don't actually place it
 
-        try:
-            order = exchange.create_order(symbol, order_type, side, amount, price, params)
-        except InsufficientFunds:
-            try:
-                symbol = symbol.replace('USDT', 'USDC')
-                order = exchange.create_order(
-                    symbol, order_type, side, amount, price, params
-                )
-            except BadSymbol:  # Tried with balance in USDC but pair not available
-                raise InsufficientFunds
+    if dry_run:
+        params = {
+            'symbol': symbol.replace('/', ''), 
+            'side': 'buy', 
+            'type': 'market', 
+            'quoteOrderQty': order_cost
+        }
+        order = exchange.private_post_order_test(params)
+        return order
+
+    if order_type == 'market':
+        if exchange.has['createMarketOrder']:
+            exchange.options['createMarketBuyOrderRequiresPrice'] = False
+            params = {'quoteOrderQty': order_cost}
+            order = exchange.create_market_buy_order(symbol, order_cost, params)
+        else:
+            exchange.options['createMarketBuyOrderRequiresPrice'] = True
+            amount = order_cost / price
+            order = exchange.create_market_buy_order(symbol, amount, price)
+    else:
+        amount = order_cost / price
+        order = exchange.create_limit_buy_order(symbol, amount, price)
 
     return order
-
-
-def short_summary(order, pct_chg) -> str:
-    """
-    Returns a brief description of an order
-    order param is a dict with the structure defined in
-    https://github.com/ccxt/ccxt/wiki/Manual#order-structure
-    """
-    action = "Buying" if order["side"] == "buy" else "Sold"
-
-    # Ex: Buying 0.034534 BTC/USDT @ 56,034.34
-    msg = (
-        f'{order["symbol"]} is down {pct_chg:.2f}% from the last 24 '
-        f'hours: {action} {order["amount"]:.6f} @ {order["price"]:,.2f}'
-    )
-    return msg
-
-
-def is_better_than_previous(new_order, previous_order, min_discount) -> bool:
-    """Returns True if price in new_order is better (min_discount cheaper) 
-    than the price in previous_order, False otherwise
-    """
-    assert min_discount > 0, 'min_discount should be a positive number'
-    
-    discount = new_order['price'] / previous_order['price'] - 1
-    return discount < 0 and abs(discount) > min_discount/100
