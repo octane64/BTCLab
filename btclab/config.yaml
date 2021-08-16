@@ -1,22 +1,23 @@
 General:
   frequency: 10 # Minutes to wait between bot cycles
   quote_currency: USDT # Currency of the available balance
-  quote_ccy_amount: 11 # Amount to trade in USD for each order
-  increase_amount_by: 0 # Increase the amount in next order if buying a previously bought symbol 
-  min_drop: 1.2SD # Percentage (0-100) for the minimun drop for an order to consider. 1SD or 2SD for standard dev
-  min_next_drop: 2 # Percentage (0-100) drop from previous orders to consider a new buy order in the same ticker
+  order_cost: 11 # Amount to trade in USD for each order
+  increase_cost_by: 0 # Increase the cost for next order if buying a previously bought symbol 
+  min_drop: 1SD # Percentage (0-100) for the minimun drop for an order to consider. 1SD or 2SD for standard dev
+  min_next_drop: 3 # Percentage (0-100) drop from previous orders to consider a new buy order in the same ticker
   retry_after: 30 # Minutes to wait for retrying after some inconvenience (e.g., insuficient funds
+  dca_freq: # Frequency in days to make periodic purchases at market price
+  dca_amount: 0 # Amount of quote currency to buy periodically every dca_freq days
   dry_run: false # A value of true indicates that orders will be 'dummy' (your balance will not be affected). A value of false indicates otherwise
   silent: false # A value of true turns silent mode on, which means: Do not send notifications to chat
   verbose: false # Set to true to see a more detailed output of the execution
-  reset_cache: false # Set to true to reset the information of previously placed orders
-  tickers:
-    - BTC
-    - ETH
-    - DOT
-    - ADA
-    - XMR
-    - BCH
+  reset: false # Set to true to reset the information of previously placed orders
+  symbols:
+    - ETH/USDT
+    - DOT/USDT
+    - ADA/USDT
+    - XMR/USDT
+    - SOL/USDT
 Exchange:
   exchange_name: Binance
   api_key: <YOUR_API_KEY>
