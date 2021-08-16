@@ -1,6 +1,5 @@
 import os
 import time
-import yaml
 import logging
 import ccxt
 import typer
@@ -16,18 +15,7 @@ from retry.api import retry
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
-def get_config():
-    # Load initial config params from config.yaml
-    with open('./btclab/config.yaml', 'r') as stream:
-        try:
-            config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-    return config
-
-config = get_config()
-
-
+config = crypto.get_config()
 def complete_config(verbose: bool = typer.Option(config['General']['reset'], '--verbose', '-v',
                         help='Show detailed info'),
                     reset: bool = typer.Option(config['General']['reset'], '--reset', '-r',
@@ -43,6 +31,8 @@ def complete_config(verbose: bool = typer.Option(config['General']['reset'], '--
     config['General']['reset'] = reset
     config['General']['dry_run'] = dry_run
     config['General']['verbose'] = verbose
+    config['General']['silent'] = silent
+    
     if verbose:
         logger.setLevel(logging.DEBUG)
 
@@ -111,6 +101,7 @@ def print_buydips_header(symbols, amount, increase_amount_by, freq, min_drop, mi
             strdate = datetime.fromtimestamp(timestamp).strftime('%x %X')
             print(f'- {key} -> {value["amount"]:.6g} @ {value["price"]:,.2f} on {strdate}')
     print()
+
 
 def std_devs_as_pct_str(min_drop: str, symbols: list[str], min_drop_pct: list[float]):
     if 'sd' in min_drop.lower().strip():
