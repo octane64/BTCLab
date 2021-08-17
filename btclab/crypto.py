@@ -1,37 +1,16 @@
 import yaml
-from enum import Enum
 from datetime import datetime
 from typing import List
 from retry import retry
 from logconf import logger
+import db
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
-
-
-class Strategy(Enum):
-    BUY_THE_DIPS = 'dip'
-    DCA = 'dca'
-
-
-def get_config():
-    """Returns a dictionary with the info in config.yaml"""
-    with open('./btclab/config.yaml', 'r') as stream:
-        try:
-            config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-    return config
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
 def get_non_supported_symbols(exchange, symbols: List) -> set:
     exchange.load_markets()
     return set(symbols).difference(set(exchange.symbols))
-
-
-@retry(NetworkError, delay=15, jitter=5, logger=logger)
-def get_balance(exchange, currency: str) -> float:
-    balance = exchange.fetch_balance()[currency]['free']
-    return balance
 
 
 def get_dummy_order(symbol, order_type, side, price, cost) -> dict:
@@ -68,8 +47,8 @@ def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
         return False    
     
     now = datetime.now()
-    timestamp = orders[symbol]['timestamp']
-    bought_on = datetime.fromtimestamp(timestamp/1000)
+    timestamp = orders[symbol]['timestamp'] / 1000
+    bought_on = datetime.fromtimestamp(timestamp)
     diff = now - bought_on
     return diff.days <= hours
 
@@ -86,9 +65,12 @@ def place_buy_order(exchange, symbol, price, order_cost, order_type, dry_run=Tru
             'type': 'market', 
             'quoteOrderQty': order_cost
         }
+        
+        if price is None:
+            price = exchange.fetch_ticker(symbol)['last']
         order = exchange.private_post_order_test(params)
         
-        if order:
+        if order is not None:
             order = get_dummy_order(symbol, order_type, 'buy', price, order_cost)
         return order
 
@@ -107,3 +89,25 @@ def place_buy_order(exchange, symbol, price, order_cost, order_type, dry_run=Tru
 
     return order
     
+
+def insufficient_funds(exchange, symbol, order_cost):
+    """
+    Returns the balance in quote currency of symbol when insufficient to cover order cost, zero otherwise
+    """
+    quote_ccy = symbol.split('/')[1]
+    balance = exchange.fetch_balance()[quote_ccy]['free']
+    
+    if balance < order_cost:
+        return balance
+    return 0
+
+
+def get_insufficient_funds_msg(symbol, order_cost, balance, retry_after):
+    asset = symbol.split('/')[0]
+    quote_ccy = symbol.split('/')[1]
+    msg = (
+        f'Insufficient funds. Next order will try to buy {order_cost:,.0f} {quote_ccy} '
+        f'of {asset} but {quote_ccy} balance is {balance:,.2f}. Trying again in '
+        f'{retry_after} minutes...'
+    )
+    return msg       
