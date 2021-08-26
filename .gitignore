@@ -4,6 +4,7 @@
 __pycache__/
 /secrets.py
 /btclab/config.yaml
+database.db
 /env
 *.pkl
 app.log

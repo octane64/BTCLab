@@ -2,14 +2,15 @@ import os
 import time
 import logging
 import ccxt
+from numpy import common_type
 import typer
 import logging
 import crypto
 import utils
 import yaml
-import dca as dca_lib
 import db
 import dips
+from common import Strategy
 from enum import Enum
 from datetime import datetime
 from logconf import logger
@@ -17,13 +18,9 @@ from retry.api import retry
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
 
-class Strategy(Enum):
-    BUY_THE_DIPS = 'dip'
-    DCA = 'dca'
-
-
 def get_config():
     """Returns a dictionary with the info in config.yaml"""
+    config = None
     with open('./btclab/config.yaml', 'r') as stream:
         try:
             config = yaml.safe_load(stream)
@@ -169,54 +166,54 @@ def buydips(
         time.sleep(frequency * 60)
 
 
-@app.command()
-@retry(NetworkError, delay=15, jitter=5, logger=logger)
-def dca(symbols: list[str] = typer.Argument(None, help='The symbols you want to buy (e.g: BTC/USDT ETH/USDC)'),
-        frequency: float = typer.Option(..., '--frequency', '-f',
-            help='In days. Buys will occur with this frequency'),
-        cost: float = typer.Option(None, '--cost', '-c',
-            help='The amount in quote currency for each buy')):
+# @app.command()
+# @retry(NetworkError, delay=15, jitter=5, logger=logger)
+# def dca(symbols: list[str] = typer.Argument(None, help='The symbols you want to buy (e.g: BTC/USDT ETH/USDC)'),
+#         frequency: float = typer.Option(..., '--frequency', '-f',
+#             help='In days. Buys will occur with this frequency'),
+#         cost: float = typer.Option(None, '--cost', '-c',
+#             help='The amount in quote currency for each buy')):
 
-    """DCA is a long-term strategy, where an investor regularly buys small amounts of an asset 
-    over a period of time, no matter the price. This application allows you to do that.
-    """
+#     """DCA is a long-term strategy, where an investor regularly buys small amounts of an asset 
+#     over a period of time, no matter the price. This application allows you to do that.
+#     """
 
-    dry_run = config['General']['dry_run']
-    orders = db.get_orders(Strategy.DCA, dry_run) 
-    header = dca_lib.get_dca_header(config, symbols, orders, frequency)
-    print(header)
-    times_ran = 0
+#     dry_run = config['General']['dry_run']
+#     orders = db.get_orders(Strategy.DCA, dry_run) 
+#     header = dca_lib.get_dca_header(config, symbols, orders, frequency)
+#     print(header)
+#     times_ran = 0
 
-    while True:
-        if config['General']['reset'] and times_ran == 0:
-            orders = {} 
-        else:
-            orders = db.get_orders(Strategy.DCA, dry_run)
+#     while True:
+#         if config['General']['reset'] and times_ran == 0:
+#             orders = {} 
+#         else:
+#             orders = db.get_orders(Strategy.DCA, dry_run)
         
-        for symbol in symbols:
-            if dca_lib.time_to_buy(symbol, orders, frequency):
-                order = crypto.place_buy_order(exchange, symbol, None, cost, 'market', dry_run)
-                orders[symbol] = order
-                db.save(orders, Strategy.DCA, dry_run)
-                real_cost = order['cost']
-                price = order['average']
+#         for symbol in symbols:
+#             if dca_lib.time_to_buy(symbol, orders, frequency):
+#                 order = crypto.place_buy_order(exchange, symbol, None, cost, 'market', dry_run)
+#                 orders[symbol] = order
+#                 db.save(orders, Strategy.DCA, dry_run)
+#                 real_cost = order['cost']
+#                 price = order['average']
                 
-                msg = dca_lib.get_dca_buy_msg(real_cost, symbol, price, frequency, dry_run)
-                logger.info(msg)
-                utils.send_msg(config['IM']['telegram_bot_token'], config['IM']['telegram_chat_id'], msg)
+#                 msg = dca_lib.get_dca_buy_msg(real_cost, symbol, price, frequency, dry_run)
+#                 logger.info(msg)
+#                 utils.send_msg(config['IM']['telegram_bot_token'], config['IM']['telegram_chat_id'], msg)
 
-            # Early alert for next buy
-            insufficient_balance = crypto.insufficient_funds(exchange, symbol, cost)
-            if insufficient_balance:
-                retry_after = config['General']['retry_after']
-                msg = crypto.get_insufficient_funds_msg(symbol, cost, insufficient_balance, retry_after)
-                logger.warning(msg)
-                utils.send_msg(config['IM']['telegram_bot_token'], config['IM']['telegram_chat_id'], msg)
-                time.sleep(retry_after * 60)
-                break
+#             # Early alert for next buy
+#             insufficient_balance = crypto.insufficient_funds(exchange, symbol, cost)
+#             if insufficient_balance:
+#                 retry_after = config['General']['retry_after']
+#                 msg = crypto.get_insufficient_funds_msg(symbol, cost, insufficient_balance, retry_after)
+#                 logger.warning(msg)
+#                 utils.send_msg(config['IM']['telegram_bot_token'], config['IM']['telegram_chat_id'], msg)
+#                 time.sleep(retry_after * 60)
+#                 break
             
-        times_ran += 1
-        time.sleep(frequency * 60)
+#         times_ran += 1
+#         time.sleep(frequency * 60)
 
 
 if __name__ == '__main__':

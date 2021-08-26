@@ -2,8 +2,9 @@ import yaml
 from datetime import datetime
 from typing import List
 from retry import retry
+from common import Strategy
 from logconf import logger
-import db
+from ccxt.base.exchange import Exchange
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 
@@ -13,27 +14,25 @@ def get_non_supported_symbols(exchange, symbols: List) -> set:
     return set(symbols).difference(set(exchange.symbols))
 
 
-def get_dummy_order(symbol, order_type, side, price, cost) -> dict:
+def get_dummy_order(user_id, symbol, order_type, side, price, cost, strategy) -> dict:
     """Returns a dictionary with the information of a dummy order. 
     The structure is the same as the one returned by the create_order function from ccxt library
     https://ccxt.readthedocs.io/en/latest/manual.html#orders
     """
     right_now = datetime.now()
+    ts = int(datetime.timestamp(right_now))
     order = {
-            'id': 'DummyOrder',
-            'datetime': right_now.isoformat(),
-            'timestamp': datetime.timestamp(right_now), # order placing/opening Unix timestamp in milliseconds
-            'lastTradeTimestamp': datetime.timestamp(right_now), # Unix timestamp of the most recent trade on this order
-            'status': 'closed',
+            'id': ts,
+            'timestamp': ts, # order placing/opening Unix timestamp in milliseconds
             'symbol': symbol,
             'type': order_type,
             'side': side,
             'price': price,
-            'average': price,
             'amount': cost / price, # 
-            'filled': cost / price,
-            'remaining': 0,  # Asumes the whole order amount got filled (Market order)
-            'cost': cost
+            'cost': cost,
+            'strategy': strategy.value,
+            'is_dummy': int(True),
+            'user_id': user_id
     }
     
     return order
@@ -54,7 +53,8 @@ def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
-def place_buy_order(exchange, symbol, price, order_cost, order_type, dry_run=True):
+def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: float, 
+                    order_type: str, strategy: Strategy, dry_run: bool = True):
     """ Returns a dictionary with the information of the order placed
     """
 
@@ -71,7 +71,7 @@ def place_buy_order(exchange, symbol, price, order_cost, order_type, dry_run=Tru
         order = exchange.private_post_order_test(params)
         
         if order is not None:
-            order = get_dummy_order(symbol, order_type, 'buy', price, order_cost)
+            order = get_dummy_order(symbol, order_type, 'buy', price, order_cost, order_cost, strategy)
         return order
 
     if order_type == 'market':

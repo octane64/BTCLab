@@ -1,6 +1,10 @@
 import pandas as pd
+from retry import retry
+from logconf import logger
+from ccxt import NetworkError, RequestTimeout
 
 
+@retry((NetworkError, RequestTimeout), delay=15, jitter=5, logger=logger)
 def get_close_prices(exchange, symbols: list[str]) -> pd.DataFrame:
     """"Returns a Pandas DataFrame with the daily close price of each symbol
     """
