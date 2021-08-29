@@ -1,30 +1,26 @@
-from datetime import datetime
 from dataclasses import dataclass
-from common import Strategy
-from telegram import TelegramBot
-from ccxt import Exchange
-from logconf import logger
-import crypto
-import db
+
+from btclab.common import Strategy
+from btclab.logconf import logger
+from btclab.users import Account
+from btclab import database
+from btclab import crypto
+
 
 @dataclass
 class DCAManager():
-    dca_config: dict
+    user_account: Account
 
-    def _time_to_buy(self, user_id: str, symbol: str) -> bool:
+    def _days_to_buy(self, symbol: str) -> int:
         """
-        Returns true if it's time to buy in a dollar-cost-average (dca)
-        strategy, false otherwise
+        Returns the number of days left to place a new buy order in a 
+        dollar-cost-average (dca) strategy. 
         """
-        days_since_last_dca = db.days_from_last_order(user_id, symbol, Strategy.DCA)
-
-        if days_since_last_dca >= self.dca_config[symbol]['days_to_buy_again']:
-            return True
+        user_id = self.user_account.user_id
+        days_since_last_dca = database.days_from_last_order(user_id, symbol, Strategy.DCA)
+        days_left = self.user_account.dca_config[symbol]['days_to_buy_again'] - days_since_last_dca
         
-        days_left = self.dca_config[symbol]['days_to_buy_again'] - days_since_last_dca
-        msg = f'User {user_id}: Next periodic buy of {symbol} will occur in {days_left} day(s)'
-        logger.debug(msg)
-        return False
+        return days_left
 
     def _get_dca_buy_msg(self, order):
         """
@@ -37,14 +33,26 @@ class DCAManager():
             msg += '. (Running in simulation mode, balance was not affected)'
         return msg
 
-    def buy(self, user_id: str, exchange: Exchange, telegram_bot: TelegramBot, dry_run: bool):
-        for symbol, config in self.dca_config.items():
+    def buy(self, dry_run: bool):
+        for symbol, config in self.user_account.dca_config.items():
             cost = config['order_cost']
-            if self._time_to_buy(user_id, symbol):
-                order = crypto.place_buy_order(exchange, symbol, None, cost, 'market', Strategy.DCA, dry_run)
-                db.save_order(order, user_id, Strategy.DCA, dry_run)
+            user_id = self.user_account.user_id
+            days_left = self._days_to_buy(symbol)
+            if days_left != 0:
+                msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left'
+                logger.debug(msg)
+                return
                 
-                if order:
-                    msg = self._get_dca_buy_msg(order)
-                    logger.info(msg)
-                    self.telegram_bot.send_msg(msg)
+            order = crypto.place_buy_order(exchange=self.user_account.exchange, 
+                                            symbol=symbol, 
+                                            price=None, 
+                                            order_cost=cost, 
+                                            order_type='market', 
+                                            strategy=Strategy.DCA,
+                                            dry_run=dry_run)
+            database.save_order(order, user_id, Strategy.DCA, dry_run)
+            
+            if order:
+                msg = self._get_dca_buy_msg(order)
+                logger.info(msg)
+                self.telegram_bot.send_msg(msg)

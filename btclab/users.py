@@ -1,10 +1,9 @@
+import ccxt
 from dataclasses import dataclass, InitVar
 from datetime import datetime
 from typing import Optional
-from dca import DCAManager
-from dips import DipsManager
-from telegram import TelegramBot
-import ccxt
+
+from btclab.telegram import TelegramBot
 
 
 @dataclass
@@ -14,12 +13,10 @@ class Account():
     last_name: str
     email: str
     created_on: datetime
-    exchange_id: str
-    api_key: InitVar[str]
-    api_secret: InitVar[str]
+    
     telegram_bot: Optional[TelegramBot]
-    dca_manager: DCAManager
-    dips_manager: DipsManager
+    dca_config: dict
+    dips_config: dict
     notify_to_telegram: bool
     notify_to_email: bool
 

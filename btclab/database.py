@@ -1,24 +1,22 @@
-from datetime import date, datetime
 import sqlite3
+from datetime import date, datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
 from sqlite3 import Error, Connection
-from btclab import symbols_callback
-from dca import DCAManager
-from common import Strategy
-from dips import DipsManager
-from order import Order
-from telegram import TelegramBot
-from logconf import logger
 from typing import Optional
-from users import Account
+
+from btclab.common import Strategy
+from btclab.order import Order
+from btclab.telegram import TelegramBot
+from btclab.logconf import logger
+from btclab.users import Account
 
 
 def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = 'database.db'
+    db_file = './data/database.db'
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -157,12 +155,8 @@ def get_users() -> list[Account]:
     accounts = []
     for row in rows:
         telegram_bot = TelegramBot(row[8], row[9])
-        
         dca_config = get_dca_config(row[0])
-        dca_mgr = DCAManager(dca_config=dca_config)
-        
         dips_config = get_dip_config(row[0])
-        dips_mgr = DipsManager(dips_config=dips_config)
         
         user_account = Account(user_id=row[0],
                                 first_name=row[1], 
@@ -175,11 +169,15 @@ def get_users() -> list[Account]:
                                 telegram_bot=telegram_bot,
                                 notify_to_telegram=bool(row[10]),
                                 notify_to_email=bool(row[11]),
-                                dca_manager=dca_mgr,
-                                dips_manager=dips_mgr)
+                                dca_config=dca_config,
+                                dips_config=dips_config)
         
         accounts.append(user_account)
-        logger.debug(f'{len(accounts)} user accounts retrieved from database')
+
+        if len(accounts) == 0:
+            logger.debug('No user accounts founnd in database')
+        else:
+            logger.debug(f'{len(accounts)} user account(s) retrieved from database')
 
     return accounts
 
