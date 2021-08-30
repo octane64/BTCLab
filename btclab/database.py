@@ -16,7 +16,7 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = './data/database.db'
+    db_file = 'database.db'
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -174,10 +174,7 @@ def get_users() -> list[Account]:
         
         accounts.append(user_account)
 
-        if len(accounts) == 0:
-            logger.debug('No user accounts founnd in database')
-        else:
-            logger.debug(f'{len(accounts)} user account(s) retrieved from database')
+        logger.debug(f'Active user account(s) found in database: {len(accounts)}')
 
     return accounts
 
