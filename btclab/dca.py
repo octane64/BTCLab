@@ -18,7 +18,10 @@ class DCAManager():
         """
         user_id = self.user_account.user_id
         days_since_last_dca = database.days_from_last_order(user_id, symbol, Strategy.DCA)
-        days_left = self.user_account.dca_config[symbol]['days_to_buy_again'] - days_since_last_dca
+        if days_since_last_dca == -1:
+            days_left = 0
+        else:
+            days_left = self.user_account.dca_config[symbol]['days_to_buy_again'] - days_since_last_dca
         
         return days_left
 
@@ -27,19 +30,18 @@ class DCAManager():
         Returns a message with the resume of a dca operation
         """
 
-        msg = f'Buying {order["cost"]:.2g} of {order["symbol"]} @ {order["price"]:,.5g}'
-        msg += f'. Next periodic buy will ocurr in {self.frequency} days'
-        if self.dry_run:
+        msg = f'Periodic buys: buying {order["cost"]:.2g} of {order["symbol"]} @ {order["price"]:,.5g}'
+        if order['is_dummy']:
             msg += '. (Running in simulation mode, balance was not affected)'
         return msg
 
-    def buy(self, dry_run: bool):
+    def buy(self):
         for symbol, config in self.user_account.dca_config.items():
             cost = config['order_cost']
             user_id = self.user_account.user_id
             days_left = self._days_to_buy(symbol)
             if days_left != 0:
-                msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left'
+                msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left for the next purchase'
                 logger.debug(msg)
                 return
                 
@@ -49,8 +51,8 @@ class DCAManager():
                                             order_cost=cost, 
                                             order_type='market', 
                                             strategy=Strategy.DCA,
-                                            dry_run=dry_run)
-            database.save_order(order, user_id, Strategy.DCA, dry_run)
+                                            is_dummy=config['is_dummy'])
+            database.save_order(order, user_id, Strategy.DCA.value)
             
             if order:
                 msg = self._get_dca_buy_msg(order)

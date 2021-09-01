@@ -22,12 +22,12 @@ class DipsManager():
             return False    
         
         now = datetime.now()
-        timestamp = orders[symbol]['timestamp'] # / 1000
+        timestamp = orders[symbol]['timestamp'] / 1000
         bought_on = datetime.fromtimestamp(timestamp)
         diff = now - bought_on
         return diff.days <= hours
 
-    def _buy_initial_drop(self, ticker, dip_config: dict, symbols_stats: dict, dry_run: bool):
+    def _buy_initial_drop(self, ticker, dip_config: dict, symbols_stats: dict):
         """
         Places a new buy order if at current price the change in the last 24h represents a drop
         that surpasses the min_drop limit and the symbol has not been bought in the last 24 hours
@@ -56,16 +56,17 @@ class DipsManager():
             asset = symbol.split('/')[0]
             quote_ccy = symbol.split('/')[1]
             price = ticker['last']
+            is_dummy = dip_config['is_dummy']
             order = crypto.place_buy_order(exchange=self.user_account.exchange, 
                                             symbol=symbol, 
                                             price=price,
                                             order_cost=cost, 
                                             order_type='market', 
-                                            dry_run=dry_run)
+                                            is_dummy=is_dummy)
             msg = (f'Buying {order["cost"]:,.2g} {quote_ccy} of {asset} @ {price:,.6g}. '
                     f'Drop in last 24h is {ticker["percentage"]:.2f}%')
             
-            if dry_run:
+            if is_dummy:
                 msg += '. (Running in simulation mode, balance was not affected)'
             
             logger.debug(msg)
@@ -75,7 +76,7 @@ class DipsManager():
         
         return None
 
-    def _buy_additional_drop(self, ticker, dip_config: dict, dry_run: bool):
+    def _buy_additional_drop(self, ticker, dip_config: dict):
         """
         Places a new buy order if symbol has been bought recently and last 24h drop 
         surpasses the min_next_drop limit
@@ -93,11 +94,12 @@ class DipsManager():
             quote_ccy = symbol.split('/')[1]
             price = ticker['ask']
             cost = last_order['cost'] + dip_config['increase_cost_by']
-            order = crypto.place_buy_order(exchange, symbol, price, cost, 'market', dry_run)
+            is_dummy = dip_config['is_dummy']
+            order = crypto.place_buy_order(exchange, symbol, price, cost, 'market', is_dummy)
             msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.2f}. '
                     f'Current price is {drop_from_last_order:.2f}% from the previous buy order')
             
-            if self.dry_run:
+            if is_dummy:
                 msg += '. (Running in simulation mode, balance was not affected)'
             
             logger.debug(msg)
@@ -106,7 +108,7 @@ class DipsManager():
             return order
         return None
 
-    def buydips(self, symbols_stats: dict, dry_run: bool):
+    def buydips(self, symbols_stats: dict):
         """
         Place orders for buying dips
         """
@@ -114,10 +116,10 @@ class DipsManager():
         exchange = self.user_account.exchange
         for symbol, dip_config in self.user_account.dips_config.items():
             ticker = exchange.fetch_ticker(symbol)
-            order = self._buy_initial_drop(ticker, dip_config, symbols_stats, dry_run)
+            order = self._buy_initial_drop(ticker, dip_config, symbols_stats)
             
             if order is None:
-                order = self._buy_additional_drop(ticker, dip_config, dry_run)
+                order = self._buy_additional_drop(ticker, dip_config)
             
             if order is not None:
-                database.save_order(order, user_id, Strategy.BUY_THE_DIPS, dry_run)
+                database.save_order(order, user_id, Strategy.BUY_THE_DIPS)

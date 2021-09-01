@@ -1,5 +1,6 @@
 import sqlite3
-from datetime import date, datetime
+import os
+from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
 from sqlite3 import Error, Connection
@@ -16,7 +17,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = 'database.db'
+    db_file = 'data/database.db' 
+    
+    # Make sure data directory has write access for everyone. If not, connect will fail
+    os.chmod(db_file, 0o775) 
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -60,17 +64,18 @@ def create_db():
     
     dca_config_table = """
         CREATE TABLE IF NOT EXISTS dca_config (
-            user_id integer,
+            user_id integer NOT NULL,
             symbol text NOT NULL,
             order_cost real NOT NULL,
             days_to_buy_again integer NOT NULL,
             is_active integer DEFAULT 1,
+            is_dummy integer DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(user_id)
         );"""
 
     dip_config_table = """
         CREATE TABLE IF NOT EXISTS dip_config (
-            user_id integer,
+            user_id integer NOT NULL,
             symbol text NOT NULL,
             order_cost real NOT NULL,
             min_drop_value real NOT NULL,
@@ -78,6 +83,7 @@ def create_db():
             min_additional_drop_pct real NOT NULL,
             additional_drop_cost_increase real DEFAULT 0,
             is_active integer DEFAULT 1,
+            is_dummy integer DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(user_id)
         );"""
 
@@ -188,7 +194,8 @@ def get_dca_config(user_id: str) -> dict:
     sql = """SELECT
                 symbol,
                 order_cost,
-                days_to_buy_again
+                days_to_buy_again,
+                is_dummy
             FROM dca_config
             WHERE user_id = ? AND is_active = 1
             """
@@ -204,7 +211,11 @@ def get_dca_config(user_id: str) -> dict:
 
     dca_config = {}
     for row in rows:
-        dca_config[row[0]] = {'order_cost': row[1], 'days_to_buy_again': row[2]}
+        dca_config[row[0]] = {
+            'order_cost': row[1], 
+            'days_to_buy_again': row[2],
+            'is_dummy': row[3],
+        }
     
     return dca_config
 
@@ -221,7 +232,8 @@ def get_dip_config(user_id: str) -> dict:
                 min_drop_value,
                 min_drop_units,
                 min_additional_drop_pct,
-                additional_drop_cost_increase
+                additional_drop_cost_increase,
+                is_dummy
             FROM dip_config
             WHERE user_id = ? AND is_active = 1
             """
@@ -242,7 +254,8 @@ def get_dip_config(user_id: str) -> dict:
             'min_drop_value': row[2],
             'min_drop_units': row[3],
             'min_additional_drop_pct': row[4],
-            'additional_drop_cost_increase': row[5]
+            'additional_drop_cost_increase': row[5],
+            'is_dummy': row[6]
         }
     
     return dip_config
@@ -302,13 +315,13 @@ def get_latest_order(user_id: str, strategy: Strategy = None) -> Optional[Order]
     return order
 
 
-def save_order(order: dict, user_id:str, strategy: str, dry_run: bool):
+def save_order(order: dict, user_id:str, strategy: Strategy):
     conn = create_connection()
     sql = """
             INSERT INTO orders (order_id, timestamp, symbol, type, side, price, 
                                 amount, cost, strategy, is_dummy, user_id) 
             
-            VALUES (:order_id, :client_order_id, :timestamp, :symbol, :type, :side, :price, 
+            VALUES (:order_id, :timestamp, :symbol, :type, :side, :price, 
                     :amount, :cost, :strategy, :is_dummy, :user_id) """
     
     values = {
@@ -320,8 +333,8 @@ def save_order(order: dict, user_id:str, strategy: str, dry_run: bool):
         'price': order['average'],
         'amount': order['amount'],
         'cost': order['cost'],
-        'strategy': strategy,
-        'is_dummy': int(dry_run),
+        'strategy': strategy.value,
+        'is_dummy': order['is_dummy'],
         'user_id': user_id
     }
     
@@ -340,31 +353,55 @@ def save_order(order: dict, user_id:str, strategy: str, dry_run: bool):
 
 def days_from_last_order(user_id: str, symbol: str, strategy: Strategy) -> int:
     """
-    Returns the number of days that have passed since the last order was placed for symbol, strategy and user
+    Returns the number of days that have passed since the last order was placed for symbol, 
+    strategy and user, or -1 if no orders have been placed
     """
     last_order = get_latest_order(user_id, strategy)
     if last_order is None:
-        return 10_000 # Arbitrary high number of days meaning never bought before
+        return -1
     
-    order_date = datetime.fromtimestamp(last_order.timestamp)
+    order_date = datetime.fromtimestamp(last_order.timestamp/1000)
     diff = datetime.now() - order_date
     return diff.days
 
 
-def load_symbol_stats(stats: dict):
+def get_symbols() -> set[str]:
     conn = create_connection()
     sql = """SELECT DISTINCT symbol FROM dip_config"""
     cur = conn.cursor()
 
-    sql2 = """INSERT INTO symbols_stats (symbol, std_dev, updated_on) 
-                VALUES (?, ?, datetime('now', 'localtime')) """
-
     try:
         cur.execute(sql)
         rows = cur.fetchall()
+    except sqlite3.Error as error:
+        logger.error(error)
+        raise error
+    finally:
+        cur.close()
+        conn.close()
+    
+    symbols = set([item for row in rows for item in row])
+    return symbols
 
-        for row in rows:
-            cur.execute(sql2, (row[0], stats[row[0]]))
+
+def load_symbol_stats(stats: dict):
+    conn = create_connection()
+    cur = conn.cursor()
+    symbols = get_symbols()
+
+    sql_update = """UPDATE symbols_stats 
+            SET std_dev = ?, 
+                updated_on = datetime('now', 'localtime')
+            WHERE symbol = ? """
+
+    sql_insert = """INSERT INTO symbols_stats (symbol, std_dev, updated_on) 
+                VALUES (?, ?, datetime('now', 'localtime')) """
+
+    try:
+        for symbol in symbols:
+            update_result = cur.execute(sql_update, (symbol, stats[symbol]))
+            if update_result.rowcount ==0:
+                update_result = cur.execute(sql_insert, (symbol, stats[symbol]))
         conn.commit()
     except sqlite3.Error as error:
         logger.error(error)
@@ -401,4 +438,5 @@ def get_symbols_stats() -> dict:
     
     return symbols
 
-
+if __name__ == '__main__':
+    get_symbols()

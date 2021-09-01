@@ -23,37 +23,44 @@ class Bot():
 
     def _get_all_symbols(self) -> set[str]:
         symbols = []
-        for account in self.accounts:
-            for symbol in account.dips_manager.dips_config.keys():
-                symbols.append(symbol)
+        tmp = database.get_symbols_stats()
+        if tmp:
+            symbols = tmp.keys()
+
         return set(symbols)
 
-    def run(self, dry_run=False):
-        symbols_stats = database.get_symbols_stats()
-
-        if not symbols_stats:
-            all_symbols = self._get_all_symbols()
-            logger.debug(f'Getting information for symbols {", ".join(all_symbols)}')
-            std_devs = data.get_std_dev(self.accounts[0].exchange, all_symbols)
-            database.load_symbol_stats(std_devs)
-            symbols_stats = std_devs
-        
+    def run(self):
         for account in self.accounts:
-            logger.debug(f'Checking information for user id: {account.user_id}')
-            logger.debug(f'Checking days since last buy for the DCA strategy)')
-            dca_manager = DCAManager(account)
-            dca_manager.buy(dry_run)
+            logger.debug(f'Checking information for user with id {account.user_id}')
             
-            logger.debug(f'Checking price drops for the dip buying strategy)')
-            dips_manager = DipsManager(account)
-            dips_manager.buydips(symbols_stats, dry_run)
+            if account.dca_config:
+                logger.debug(f'Checking days since last purchase for the DCA strategy')
+                dca_manager = DCAManager(account)
+                dca_manager.buy()
+            else:
+                logger.warning(f'No DCA config found for user id {account.user_id}')
+            
+            if account.dips_config:
+                logger.debug(f'Checking price drops for the dip buying strategy')
+                all_symbols = database.get_symbols()
+                symbols_stats = database.get_symbols_stats()
+                if not symbols_stats or not all(symbol in symbols_stats for symbol in all_symbols):
+                    logger.debug(f'Getting information for symbols {", ".join(all_symbols)}')
+                    std_devs = data.get_std_dev(account.exchange, all_symbols)
+                    database.load_symbol_stats(std_devs)
+                    symbols_stats = database.get_symbols_stats()
+                
+                
+                dips_manager = DipsManager(account)
+                dips_manager.buydips(symbols_stats)
+            else:
+                logger.warning(f'No dips config found for user id {account.user_id}')
             # TODO Check balances
 
 
 @click.command()
 @click.option('-v', '--verbose', default=True, is_flag=True, help="Print verbose messages while excecuting")
-@click.option('--dry-run', is_flag=True, help="Run in simmulation mode. (Don't place real orders)")
-def main(dry_run, verbose):
+def main(verbose):
     if verbose:
         logger.setLevel(logging.DEBUG)
 
@@ -64,7 +71,7 @@ def main(dry_run, verbose):
         sys.exit(1)
 
     bot = Bot(accounts)
-    bot.run(dry_run)
+    bot.run()
 
 
 if __name__ == '__main__':

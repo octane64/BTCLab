@@ -13,7 +13,9 @@ class Account():
     last_name: str
     email: str
     created_on: datetime
-    
+    exchange_id: str
+    api_key: InitVar[str]
+    api_secret: InitVar[str]
     telegram_bot: Optional[TelegramBot]
     dca_config: dict
     dips_config: dict

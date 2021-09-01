@@ -31,11 +31,12 @@ def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
 def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: float, 
-                    order_type: str, strategy: Strategy, dry_run: bool = True):
-    """ Returns a dictionary with the information of the order placed
+                    order_type: str, strategy: Strategy, is_dummy: bool = False):
+    """ 
+    Returns a dictionary with the information of the order placed
     """
 
-    if dry_run:
+    if is_dummy:
         params = {
             'symbol': symbol.replace('/', ''), 
             'side': 'buy', 
