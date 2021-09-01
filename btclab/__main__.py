@@ -1,10 +1,7 @@
 import sys
 import logging
 import click
-from enum import Enum
 from retry import retry
-from typing import Optional
-from datetime import datetime
 from dataclasses import dataclass, InitVar
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
@@ -12,7 +9,6 @@ from btclab.dca import DCAManager
 from btclab.dips import DipsManager
 from btclab.users import Account
 from btclab.logconf import logger
-from btclab.telegram import TelegramBot
 from btclab import data
 from btclab import database
 
@@ -31,21 +27,21 @@ class Bot():
 
     def run(self):
         for account in self.accounts:
-            logger.debug(f'Checking information for user with id {account.user_id}')
+            logger.info(f'Checking information for user with id {account.user_id}')
             
             if account.dca_config:
-                logger.debug(f'Checking days since last purchase for the DCA strategy')
+                logger.info(f'Checking days since last purchase for the DCA strategy')
                 dca_manager = DCAManager(account)
                 dca_manager.buy()
             else:
-                logger.warning(f'No DCA config found for user id {account.user_id}')
+                logger.info(f'No DCA config found for user id {account.user_id}')
             
             if account.dips_config:
-                logger.debug(f'Checking price drops for the dip buying strategy')
+                logger.info(f'Checking price drops for the dip buying strategy')
                 all_symbols = database.get_symbols()
                 symbols_stats = database.get_symbols_stats()
                 if not symbols_stats or not all(symbol in symbols_stats for symbol in all_symbols):
-                    logger.debug(f'Getting information for symbols {", ".join(all_symbols)}')
+                    logger.info(f'Getting information for symbols {", ".join(all_symbols)}')
                     std_devs = data.get_std_dev(account.exchange, all_symbols)
                     database.load_symbol_stats(std_devs)
                     symbols_stats = database.get_symbols_stats()
@@ -59,7 +55,7 @@ class Bot():
 
 
 @click.command()
-@click.option('-v', '--verbose', default=True, is_flag=True, help="Print verbose messages while excecuting")
+@click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
 def main(verbose):
     if verbose:
         logger.setLevel(logging.DEBUG)
@@ -68,7 +64,7 @@ def main(verbose):
     accounts = database.get_users()
     if len(accounts) == 0:
         logger.info('No user accounts found. Create a user account and try again')
-        sys.exit(1)
+        sys.exit()
 
     bot = Bot(accounts)
     bot.run()
