@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from pathlib import Path
 from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
@@ -17,10 +18,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = 'data/database.db' 
+    db_file = 'database.db'
     
     # Make sure data directory has write access for everyone. If not, connect will fail
-    os.chmod(db_file, 0o775) 
+    # os.chmod(db_file, 0o775)
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -261,7 +262,7 @@ def get_dip_config(user_id: str) -> dict:
     return dip_config
 
 
-def get_latest_order(user_id: str, strategy: Strategy = None) -> Optional[Order]:
+def get_latest_order(user_id: str, symbol: str, strategy: Strategy = None) -> Optional[Order]:
     """
     Returns the latest order of a user for a given strategy
     """
@@ -280,16 +281,16 @@ def get_latest_order(user_id: str, strategy: Strategy = None) -> Optional[Order]
                 strategy,
                 is_dummy
             FROM orders
-            WHERE user_id = ? {where_clause}
+            WHERE user_id = ? AND symbol = ? {where_clause} 
             ORDER BY timestamp DESC
             LIMIT 1
             """
     
     try:
         if strategy:
-            cur.execute(sql, (user_id, strategy.value))
+            cur.execute(sql, (user_id, symbol, strategy.value))
         else:
-            cur.execute(sql, (user_id,))
+            cur.execute(sql, (user_id, symbol))
         row = cur.fetchone()
     except sqlite3.Error as error:
         logger.error(f'Failed to retrieve latest order of user {user_id}')
@@ -356,7 +357,7 @@ def days_from_last_order(user_id: str, symbol: str, strategy: Strategy) -> int:
     Returns the number of days that have passed since the last order was placed for symbol, 
     strategy and user, or -1 if no orders have been placed
     """
-    last_order = get_latest_order(user_id, strategy)
+    last_order = get_latest_order(user_id, symbol, strategy)
     if last_order is None:
         return -1
     

@@ -84,7 +84,7 @@ class DipsManager():
         user_id = self.user_account.user_id
         exchange = self.user_account.exchange
         symbol = ticker['symbol']
-        last_order = database.get_latest_order(user_id, Strategy.BUY_THE_DIPS)
+        last_order = database.get_latest_order(user_id, symbol, Strategy.BUY_THE_DIPS)
         if last_order is None:
             return None
         
