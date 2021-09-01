@@ -5,6 +5,7 @@ from retry import retry
 from dataclasses import dataclass, InitVar
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
+from btclab import __version__
 from btclab.dca import DCAManager
 from btclab.dips import DipsManager
 from btclab.users import Account
@@ -26,6 +27,7 @@ class Bot():
         return set(symbols)
 
     def run(self):
+        logger.info(f'BTCLab version {__version__}')
         for account in self.accounts:
             logger.info(f'Checking information for user with id {account.user_id}')
             
@@ -57,6 +59,7 @@ class Bot():
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
 def main(verbose):
+    # logger.info(f'BTCLab v{__version__}')
     if verbose:
         logger.setLevel(logging.DEBUG)
 

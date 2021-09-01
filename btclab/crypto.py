@@ -65,6 +65,7 @@ def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: f
         amount = order_cost / price
         order = exchange.create_limit_buy_order(symbol, amount, price)
 
+    order['is_dummy'] = is_dummy
     return order
     
 

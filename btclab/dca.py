@@ -52,9 +52,9 @@ class DCAManager():
                                             order_type='market', 
                                             strategy=Strategy.DCA,
                                             is_dummy=config['is_dummy'])
-            database.save_order(order, user_id, Strategy.DCA.value)
+            database.save_order(order, user_id, Strategy.DCA)
             
             if order:
                 msg = self._get_dca_buy_msg(order)
                 logger.info(msg)
-                self.telegram_bot.send_msg(msg)
+                self.user_account.telegram_bot.send_msg(msg)

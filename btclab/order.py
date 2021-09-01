@@ -36,6 +36,6 @@ class Order():
                 'cost': cost,
                 'strategy': strategy.value,
                 'is_dummy': int(True),
-                'user_id': user_id
+                'user_id': user_id,
         }
         return order

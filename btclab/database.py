@@ -21,7 +21,7 @@ def create_connection() -> Connection:
     db_file = 'database.db'
     
     # Make sure data directory has write access for everyone. If not, connect will fail
-    # os.chmod(db_file, 0o775)
+    os.chmod(db_file, 0o777)
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -335,7 +335,7 @@ def save_order(order: dict, user_id:str, strategy: Strategy):
         'amount': order['amount'],
         'cost': order['cost'],
         'strategy': strategy.value,
-        'is_dummy': order['is_dummy'],
+        'is_dummy': int(order['is_dummy']),
         'user_id': user_id
     }
     
@@ -438,6 +438,3 @@ def get_symbols_stats() -> dict:
         symbols[row[0]] = {'std_dev': row[1], 'updated_on': row[2]}
     
     return symbols
-
-if __name__ == '__main__':
-    get_symbols()
