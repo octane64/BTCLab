@@ -180,7 +180,7 @@ def get_users() -> list[Account]:
         
         accounts.append(user_account)
 
-        logger.debug(f'Active user account(s) found in database: {len(accounts)}')
+    logger.debug(f'Active user account(s) found in database: {len(accounts)}')
 
     return accounts
 

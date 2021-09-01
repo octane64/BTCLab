@@ -43,7 +43,7 @@ class DCAManager():
             if days_left != 0:
                 msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left for the next purchase'
                 logger.debug(msg)
-                return
+                continue
                 
             order = crypto.place_buy_order(exchange=self.user_account.exchange, 
                                             symbol=symbol, 
