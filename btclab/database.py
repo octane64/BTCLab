@@ -18,7 +18,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = os.getenv('PYTHONPATH') + 'database.db'
+    if os.getenv('PYTHONPATH') is None:
+        db_file = 'database.db'
+    else:
+        db_file = os.getenv('PYTHONPATH') + 'database.db'
     
     # Make sure data directory has write access for everyone. If not, connect will fail
     os.chmod(db_file, 0o777)
