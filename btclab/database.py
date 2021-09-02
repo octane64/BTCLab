@@ -331,7 +331,7 @@ def save_order(order: dict, user_id:str, strategy: Strategy):
         'symbol': order['symbol'],
         'type': order['type'],
         'side': order['side'],
-        'price': order['average'],
+        'price': order['price'],
         'amount': order['amount'],
         'cost': order['cost'],
         'strategy': strategy.value,
