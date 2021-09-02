@@ -2,6 +2,7 @@ import sys
 import logging
 import click
 from retry import retry
+from datetime import date, datetime
 from dataclasses import dataclass, InitVar
 from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
 
@@ -26,15 +27,19 @@ class Bot():
 
         return set(symbols)
 
-    def run(self):
+    def run(self, dry_run: bool):
         logger.info(f'BTCLab version {__version__}')
         for account in self.accounts:
+            if dry_run:
+                logger.info('Running in simmulation mode. Balances will not be affected')
             logger.info(f'Checking information for user with id {account.user_id}')
             
+            account.greet_with_symbols_summary()
+
             if account.dca_config:
                 logger.info(f'Checking days since last purchase for the DCA strategy')
                 dca_manager = DCAManager(account)
-                dca_manager.buy()
+                dca_manager.buy(dry_run)
             else:
                 logger.info(f'No DCA config found for user id {account.user_id}')
             
@@ -50,7 +55,7 @@ class Bot():
                 
                 
                 dips_manager = DipsManager(account)
-                dips_manager.buydips(symbols_stats)
+                dips_manager.buydips(symbols_stats, dry_run)
             else:
                 logger.warning(f'No dips config found for user id {account.user_id}')
             # TODO Check balances
@@ -58,7 +63,8 @@ class Bot():
 
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
-def main(verbose):
+@click.option('--dry-run', is_flag=True, help="Run in simulation mode (Don't affect balances)")
+def main(verbose, dry_run):
     # logger.info(f'BTCLab v{__version__}')
     if verbose:
         logger.setLevel(logging.DEBUG)
@@ -70,7 +76,7 @@ def main(verbose):
         sys.exit()
 
     bot = Bot(accounts)
-    bot.run()
+    bot.run(dry_run)
 
 
 if __name__ == '__main__':

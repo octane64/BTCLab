@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from retry import retry
 from ccxt.base.exchange import Exchange
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
@@ -29,14 +29,26 @@ def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
     return diff.days <= hours
 
 
+def get_symbols_summary(symbols: list[str], exchange: Exchange) -> Optional[str]:
+    if not exchange.has['fetchTickers']:
+        logger.warning(f'{exchange.name} exchange does not support fetchTickers method')
+        return None
+    
+    msg = 'These are the latest prices for the symbols you\'re following:\n\n'
+    tickers = exchange.fetch_tickers(symbols)
+    for item in tickers.values():
+        msg += f'{item["symbol"]}: {item["last"]:,.8g} ({item["percentage"]:+.1f}%)\n'
+    return msg
+
+
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
-def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: float, 
-                    order_type: str, strategy: Strategy, is_dummy: bool = False):
+def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: float, order_type: str,
+                    strategy: Strategy, is_dummy: bool = False, dry_run: bool = False):
     """ 
     Returns a dictionary with the information of the order placed
     """
 
-    if is_dummy:
+    if is_dummy or dry_run:
         params = {
             'symbol': symbol.replace('/', ''), 
             'side': 'buy', 
@@ -65,7 +77,7 @@ def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: f
         amount = order_cost / price
         order = exchange.create_limit_buy_order(symbol, amount, price)
 
-    order['is_dummy'] = is_dummy
+    order['is_dummy'] = is_dummy or dry_run
     return order
     
 

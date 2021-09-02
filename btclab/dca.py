@@ -35,7 +35,7 @@ class DCAManager():
             msg += '. (Running in simulation mode, balance was not affected)'
         return msg
 
-    def buy(self):
+    def buy(self, dry_run: bool):
         for symbol, config in self.user_account.dca_config.items():
             cost = config['order_cost']
             user_id = self.user_account.user_id
@@ -51,7 +51,8 @@ class DCAManager():
                                             order_cost=cost, 
                                             order_type='market', 
                                             strategy=Strategy.DCA,
-                                            is_dummy=config['is_dummy'])
+                                            is_dummy=config['is_dummy'],
+                                            dry_run=dry_run)
             database.save_order(order, user_id, Strategy.DCA)
             
             if order:
