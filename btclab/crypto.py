@@ -61,7 +61,7 @@ def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: f
         order = exchange.private_post_order_test(params)
         
         if order is not None:
-            order = Order.get_dummy_order(symbol, order_type, 'buy', price, order_cost, order_cost, strategy)
+            order = Order.get_dummy_order(1, symbol, order_type, 'buy', price, order_cost, strategy)
         return order
 
     if order_type == 'market':
