@@ -7,7 +7,7 @@ import pickle
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
-from logconf import logger
+from btclab.logconf import logger
 
 
 @dataclass
