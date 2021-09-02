@@ -43,7 +43,7 @@ def get_symbols_summary(symbols: list[str], exchange: Exchange) -> Optional[str]
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
 def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: float, order_type: str,
-                    strategy: Strategy, is_dummy: bool = False, dry_run: bool = False):
+        strategy: Strategy, is_dummy: bool = False, dry_run: bool = False, user_id: int = -1):
     """ 
     Returns a dictionary with the information of the order placed
     """
@@ -61,7 +61,7 @@ def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: f
         order = exchange.private_post_order_test(params)
         
         if order is not None:
-            order = Order.get_dummy_order(-1, symbol, order_type, 'buy', price, order_cost, strategy)
+            order = Order.get_dummy_order(user_id, symbol, order_type, 'buy', price, order_cost, strategy)
         return order
 
     if order_type == 'market':
