@@ -8,6 +8,7 @@ database.db
 /env
 *.pkl
 app.log
+greetings.bin
 
 # Distribution / packaging
 .Python

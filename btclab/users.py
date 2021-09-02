@@ -1,3 +1,4 @@
+import os
 import ccxt
 from dataclasses import dataclass, InitVar
 from datetime import datetime
@@ -6,6 +7,7 @@ import pickle
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
+from btclab.logconf import logger
 
 
 @dataclass
@@ -44,33 +46,21 @@ class Account():
         return f'Good {time} {self.first_name}'
 
     def _set_as_greeted(self):
+        f = open('greetings.bin', 'wb')
+        f.close()
+
+    def _already_greeted_today(self) -> bool:
         try:
-            with open('greetings.pkl', 'rb') as f:
-                greetings = pickle.load(f)
+            last_greeting = os.path.getmtime('greetings.bin')
         except FileNotFoundError:
-            greetings = {}
+            # with open('greetings.bin', 'xb'):
+                return False
         
-        greetings[self.user_id] =  datetime.now()
-        
-        with open('greetings.pkl', 'wb') as f:
-            pickle.dump(greetings, f)
-
-    def already_greeted_today(self) -> bool:
-        try:
-            with open('greetings.pkl', 'rb') as f:
-                greetings = pickle.load(f)
-        except FileNotFoundError:
-            return False
-
-        if self.user_id not in greetings:
-            return False
-
-        last_time = greetings[self.user_id]
-        time_since_last_greeting = datetime.now() - last_time
-        return time_since_last_greeting.days <= 1
+        days = (datetime.now() - datetime.fromtimestamp(last_greeting)).days
+        return days == 0
 
     def greet_with_symbols_summary(self):
-        if datetime.now().hour >= 7 and not self.already_greeted_today():
+        if datetime.now().hour >= 7 and not self._already_greeted_today():
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)
