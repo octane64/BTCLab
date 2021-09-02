@@ -81,7 +81,6 @@ def main(verbose, dry_run):
 
 if __name__ == '__main__':
     main()
-    # logger.setLevel(logging.DEBUG)
 
     
     

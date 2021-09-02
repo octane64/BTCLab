@@ -1,12 +1,12 @@
 import ccxt
 from dataclasses import dataclass, InitVar
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 import pickle
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
-import telegram
+
 
 @dataclass
 class Account():
