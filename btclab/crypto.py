@@ -37,7 +37,7 @@ def get_symbols_summary(symbols: list[str], exchange: Exchange) -> Optional[str]
     msg = 'These are the latest prices for the symbols you\'re following:\n\n'
     tickers = exchange.fetch_tickers(symbols)
     for item in tickers.values():
-        msg += f'{item["symbol"]}: {item["last"]:,.8g} ({item["percentage"]:+.1f}%)\n'
+        msg += f'{item["symbol"]}: {item["last"]:,.8g} ({item["percentage"]:.1f}%)\n'
     return msg
 
 

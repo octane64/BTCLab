@@ -64,7 +64,7 @@ class Account():
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)
-            msg = self._greet() + '\n\n' + crypto.get_symbols_summary(all_symbols, self.exchange)
+            msg = self._greet() + '. ' + crypto.get_symbols_summary(all_symbols, self.exchange)
             
             if self.notify_to_telegram:
                 self.telegram_bot.send_msg(msg)
