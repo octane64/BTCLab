@@ -65,7 +65,6 @@ class Bot():
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
 @click.option('--dry-run', is_flag=True, help="Run in simulation mode (Don't affect balances)")
 def main(verbose, dry_run):
-    # logger.info(f'BTCLab v{__version__}')
     if verbose:
         logger.setLevel(logging.DEBUG)
 

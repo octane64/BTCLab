@@ -265,7 +265,7 @@ def get_dip_config(user_id: str) -> dict:
     return dip_config
 
 
-def get_latest_order(user_id: str, symbol: str, strategy: Strategy = None) -> Optional[Order]:
+def get_latest_order(user_id: str, symbol: str, is_dummy: bool, strategy: Strategy = None) -> Optional[Order]:
     """
     Returns the latest order of a user for a given strategy
     """
@@ -284,16 +284,16 @@ def get_latest_order(user_id: str, symbol: str, strategy: Strategy = None) -> Op
                 strategy,
                 is_dummy
             FROM orders
-            WHERE user_id = ? AND symbol = ? {where_clause} 
+            WHERE user_id = ? AND symbol = ? AND is_dummy = ? {where_clause} 
             ORDER BY timestamp DESC
             LIMIT 1
             """
     
     try:
         if strategy:
-            cur.execute(sql, (user_id, symbol, strategy.value))
+            cur.execute(sql, (user_id, symbol, int(is_dummy), strategy.value))
         else:
-            cur.execute(sql, (user_id, symbol))
+            cur.execute(sql, (user_id, symbol, int(is_dummy)))
         row = cur.fetchone()
     except sqlite3.Error as error:
         logger.error(f'Failed to retrieve latest order of user {user_id}')
@@ -355,12 +355,12 @@ def save_order(order: dict, strategy: Strategy):
         conn.close()
 
 
-def days_from_last_order(user_id: str, symbol: str, strategy: Strategy) -> int:
+def days_from_last_order(user_id: str, symbol: str, strategy: Strategy, is_dummy: bool) -> int:
     """
     Returns the number of days that have passed since the last order was placed for symbol, 
     strategy and user, or -1 if no orders have been placed
     """
-    last_order = get_latest_order(user_id, symbol, strategy)
+    last_order = get_latest_order(user_id, symbol, is_dummy, strategy)
     if last_order is None:
         return -1
     

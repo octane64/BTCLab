@@ -11,13 +11,13 @@ from btclab import crypto
 class DCAManager():
     user_account: Account
 
-    def _days_to_buy(self, symbol: str) -> int:
+    def _days_to_buy(self, symbol: str, is_dummy: bool) -> int:
         """
         Returns the number of days left to place a new buy order in a 
         dollar-cost-average (dca) strategy. 
         """
         user_id = self.user_account.user_id
-        days_since_last_dca = database.days_from_last_order(user_id, symbol, Strategy.DCA)
+        days_since_last_dca = database.days_from_last_order(user_id, symbol, Strategy.DCA, is_dummy)
         if days_since_last_dca == -1:
             days_left = 0
         else:
@@ -39,7 +39,7 @@ class DCAManager():
         for symbol, config in self.user_account.dca_config.items():
             cost = config['order_cost']
             user_id = self.user_account.user_id
-            days_left = self._days_to_buy(symbol)
+            days_left = self._days_to_buy(symbol, config['is_dummy'])
             if days_left != 0:
                 msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left for the next purchase'
                 logger.debug(msg)

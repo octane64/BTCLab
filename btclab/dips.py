@@ -40,7 +40,7 @@ class DipsManager():
         else:
             min_drop = dip_config['min_drop_value'] * -1
         
-        days_from_last_order = database.days_from_last_order(user_id, symbol, Strategy.BUY_THE_DIPS)
+        days_from_last_order = database.days_from_last_order(user_id, symbol, Strategy.BUY_THE_DIPS, dip_config['is_dummy'])
         
         
         if days_from_last_order == 0:
@@ -85,7 +85,7 @@ class DipsManager():
         user_id = self.user_account.user_id
         exchange = self.user_account.exchange
         symbol = ticker['symbol']
-        last_order = database.get_latest_order(user_id, symbol, Strategy.BUY_THE_DIPS)
+        last_order = database.get_latest_order(user_id, symbol, dip_config['is_dummy'], Strategy.BUY_THE_DIPS)
         if last_order is None:
             return None
         
