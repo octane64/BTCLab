@@ -24,7 +24,7 @@ class Order():
         https://ccxt.readthedocs.io/en/latest/manual.html#orders
         """
         right_now = datetime.now()
-        ts = int(datetime.timestamp(right_now))
+        ts = int(datetime.timestamp(right_now))*1000
         order = {
                 'id': ts,
                 'timestamp': ts, # order placing/opening Unix timestamp in milliseconds

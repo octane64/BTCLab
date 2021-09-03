@@ -364,7 +364,7 @@ def days_from_last_order(user_id: str, symbol: str, strategy: Strategy) -> int:
     if last_order is None:
         return -1
     
-    order_date = datetime.fromtimestamp(last_order.timestamp)
+    order_date = datetime.fromtimestamp(last_order.timestamp/1000)
     diff = datetime.now() - order_date
     return diff.days
 
