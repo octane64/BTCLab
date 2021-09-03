@@ -319,7 +319,7 @@ def get_latest_order(user_id: str, symbol: str, strategy: Strategy = None) -> Op
     return order
 
 
-def save_order(order: dict, user_id:str, strategy: Strategy):
+def save_order(order: dict, strategy: Strategy):
     conn = create_connection()
     sql = """
             INSERT INTO orders (order_id, timestamp, symbol, type, side, price, 
@@ -339,8 +339,8 @@ def save_order(order: dict, user_id:str, strategy: Strategy):
         'cost': order['cost'],
         'strategy': strategy.value,
         'is_dummy': int(order['is_dummy']),
-        'user_id': user_id
-    }
+        'user_id': order['user_id']
+        }
     
     try:
         cur = conn.cursor()

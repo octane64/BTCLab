@@ -54,7 +54,7 @@ class DCAManager():
                                             is_dummy=config['is_dummy'],
                                             dry_run=dry_run,
                                             user_id=user_id)
-            database.save_order(order, user_id, Strategy.DCA)
+            database.save_order(order, Strategy.DCA)
             
             if order:
                 msg = self._get_dca_buy_msg(order)

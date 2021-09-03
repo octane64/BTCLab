@@ -12,7 +12,7 @@ from btclab.logconf import logger
 
 @dataclass
 class Account():
-    user_id: str
+    user_id: int
     first_name: str
     last_name: str
     email: str
