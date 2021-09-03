@@ -52,7 +52,8 @@ class DCAManager():
                                             order_type='market', 
                                             strategy=Strategy.DCA,
                                             is_dummy=config['is_dummy'],
-                                            dry_run=dry_run)
+                                            dry_run=dry_run,
+                                            user_id=user_id)
             database.save_order(order, user_id, Strategy.DCA)
             
             if order:

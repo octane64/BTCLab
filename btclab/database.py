@@ -18,7 +18,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = 'database.db'
+    if os.getenv('PYTHONPATH') is None:
+        db_file = 'database.db'
+    else:
+        db_file = os.getenv('PYTHONPATH') + 'database.db'
     
     # Make sure data directory has write access for everyone. If not, connect will fail
     os.chmod(db_file, 0o777)
@@ -312,7 +315,7 @@ def get_latest_order(user_id: str, symbol: str, strategy: Strategy = None) -> Op
                     cost=row[7],
                     fee=None,
                     strategy=strategy.value,
-                    is_dummy=bool(8))
+                    is_dummy=bool(row[8]))
     return order
 
 
@@ -361,7 +364,7 @@ def days_from_last_order(user_id: str, symbol: str, strategy: Strategy) -> int:
     if last_order is None:
         return -1
     
-    order_date = datetime.fromtimestamp(last_order.timestamp/1000)
+    order_date = datetime.fromtimestamp(last_order.timestamp)
     diff = datetime.now() - order_date
     return diff.days
 
