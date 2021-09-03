@@ -1,9 +1,8 @@
 import os
 import ccxt
 from dataclasses import dataclass, InitVar
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
-import pickle
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
@@ -37,13 +36,14 @@ class Account():
 
     def _greet(self):
         hour = datetime.now().hour
+        name = self.first_name.split(' ')[0]
         if datetime.now().hour < 12:
             time = 'morning'
         elif hour <= 18:
             time = 'afternoon'
         else:
             time = 'evening'
-        return f'Good {time} {self.first_name}'
+        return f'Good {time} {name}'
 
     def _set_as_greeted(self):
         f = open('greetings.bin', 'wb')
@@ -53,11 +53,8 @@ class Account():
         try:
             last_greeting = os.path.getmtime('greetings.bin')
         except FileNotFoundError:
-            # with open('greetings.bin', 'xb'):
-                return False
-        
-        days = (datetime.now() - datetime.fromtimestamp(last_greeting)).days
-        return days == 0
+            return False
+        return date.today() == datetime.fromtimestamp(last_greeting).date()
 
     def greet_with_symbols_summary(self):
         if datetime.now().hour >= 7 and not self._already_greeted_today():

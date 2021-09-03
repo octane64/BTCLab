@@ -57,7 +57,7 @@ def create_db():
                 email text NOT NULL UNIQUE,
                 is_active integer DEFAULT 1,
                 created_on text NOT NULL,
-                exchange_id text NOT NULL UNIQUE,
+                exchange_id text NOT NULL,
                 api_key text NOT NULL UNIQUE,
                 api_secret text NOT NULL UNIQUE,
                 telegram_bot_token text UNIQUE,
@@ -94,7 +94,6 @@ def create_db():
     orders_table = """
         CREATE TABLE IF NOT EXISTS orders (
             order_id text,
-            clientOrderId,
             timestamp integer NOT NULL,
             symbol text NOT NULL,
             type text NOT NULL,
