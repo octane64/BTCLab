@@ -78,6 +78,7 @@ def place_buy_order(exchange: Exchange, symbol: str, price: float, order_cost: f
         order = exchange.create_limit_buy_order(symbol, amount, price)
 
     order['is_dummy'] = is_dummy or dry_run
+    order['user_id'] = user_id
     return order
     
 
