@@ -1,3 +1,7 @@
+import logging
+
+
+import logging
 from datetime import datetime
 from typing import List, Optional
 from retry import retry
@@ -5,8 +9,9 @@ from ccxt.base.exchange import Exchange
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
 from btclab.common import Strategy
-from btclab.logconf import logger
 from btclab.order import Order
+
+logger = logging.getLogger(__name__)
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)

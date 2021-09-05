@@ -1,6 +1,6 @@
 import sqlite3
+import logging
 import os
-from pathlib import Path
 from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
@@ -10,9 +10,10 @@ from typing import Optional
 from btclab.common import Strategy
 from btclab.order import Order
 from btclab.telegram import TelegramBot
-from btclab.logconf import logger
 from btclab.users import Account
 
+
+logger = logging.getLogger(__name__)
 
 def create_connection() -> Connection:
     """
@@ -28,8 +29,8 @@ def create_connection() -> Connection:
     conn = None
     try:
         conn = sqlite3.connect(db_file)
-    except Error as e:
-        logger.error(e)
+    except Error:
+        logger.exception('Error while trying to connect to the database')
 
     return conn
 
@@ -125,7 +126,7 @@ def create_db():
         create_table(conn, symbols_stats_table)
         conn.close()
     else:
-        logger.error("Error! cannot create the database connection.")
+        logger.exception("Error! cannot create the database connection.")
 
 
 def get_users() -> list[Account]:
@@ -155,7 +156,7 @@ def get_users() -> list[Account]:
         cur.execute(sql)
         rows = cur.fetchall()
     except sqlite3.Error as error:
-        logger.error(f'Failed to retrieve latest order for users from database')
+        logger.exception(f'Failed to retrieve latest order for users from database')
         raise error
     finally:
         cur.close()
@@ -183,7 +184,7 @@ def get_users() -> list[Account]:
         
         accounts.append(user_account)
 
-    logger.debug(f'Active user account(s) found in database: {len(accounts)}')
+    logger.info(f'Active user account(s) found in database: {len(accounts)}')
 
     return accounts
 
@@ -206,7 +207,7 @@ def get_dca_config(user_id: str) -> dict:
         cur.execute(sql, (user_id, ))
         rows = cur.fetchall()
     except sqlite3.Error as error:
-        logger.debug(f'Error while retrieving DCA params for user {user_id}')
+        logger.exception(f'Error while retrieving DCA params for user {user_id}')
         raise error
     finally:
         cur.close()
@@ -244,7 +245,7 @@ def get_dip_config(user_id: str) -> dict:
         cur.execute(sql, (user_id, ))
         rows = cur.fetchall()
     except sqlite3.Error as error:
-        logger.debug(f'Error while retrieving dip params for user {user_id}')
+        logger.exception(f'Error while retrieving dip params for user {user_id}')
         raise error
     finally:
         cur.close()
@@ -295,7 +296,7 @@ def get_latest_order(user_id: str, symbol: str, is_dummy: bool, strategy: Strate
             cur.execute(sql, (user_id, symbol, int(is_dummy)))
         row = cur.fetchone()
     except sqlite3.Error as error:
-        logger.error(f'Failed to retrieve latest order of user {user_id}')
+        logger.exception(f'Failed to retrieve latest order of user {user_id}')
         raise error
     finally:
         cur.close()
@@ -345,9 +346,9 @@ def save_order(order: dict, strategy: Strategy):
         cur = conn.cursor()
         cur.execute(sql, values)
         conn.commit()
-        logger.debug(f'Order to {order["side"]} {order["symbol"]} saved with id {order["id"]}')
+        logger.info(f'Order to {order["side"]} {order["symbol"]} saved with id {order["id"]}')
     except sqlite3.Error as error:
-        logger.error(f'Failed to save order with id {order["id"]}')
+        logger.exception(f'Failed to save order with id {order["id"]}')
         raise error
     finally:
         cur.close()
@@ -377,7 +378,7 @@ def get_symbols() -> set[str]:
         cur.execute(sql)
         rows = cur.fetchall()
     except sqlite3.Error as error:
-        logger.error(error)
+        logger.exception('Error while retrieving symbol information')
         raise error
     finally:
         cur.close()
@@ -407,7 +408,7 @@ def load_symbol_stats(stats: dict):
                 update_result = cur.execute(sql_insert, (symbol, stats[symbol]))
         conn.commit()
     except sqlite3.Error as error:
-        logger.error(error)
+        logger.exception('Error while trying to load stats for symbols')
         raise error
     finally:
         cur.close()
@@ -429,7 +430,7 @@ def get_symbols_stats() -> dict:
         cur.execute(sql)
         rows = cur.fetchall()
     except sqlite3.Error as error:
-        logger.debug('Error while retrieving symbols stats')
+        logger.exception('Error while retrieving symbols stats')
         raise error
     finally:
         cur.close()

@@ -1,8 +1,10 @@
+import logging
 import pandas as pd
 from retry import retry
 from ccxt import NetworkError, RequestTimeout
 
-from btclab.logconf import logger
+
+logger = logging.getLogger(__name__)
 
 
 @retry((NetworkError, RequestTimeout), delay=15, jitter=5, logger=logger)

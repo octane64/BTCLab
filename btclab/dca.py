@@ -1,11 +1,13 @@
+import logging
 from dataclasses import dataclass
 
 from btclab.common import Strategy
-from btclab.logconf import logger
 from btclab.users import Account
 from btclab import database
 from btclab import crypto
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class DCAManager():
@@ -42,7 +44,7 @@ class DCAManager():
             days_left = self._days_to_buy(symbol, config['is_dummy'])
             if days_left != 0:
                 msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left for the next purchase'
-                logger.debug(msg)
+                logger.info(msg)
                 continue
                 
             order = crypto.place_buy_order(exchange=self.user_account.exchange, 

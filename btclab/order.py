@@ -3,6 +3,8 @@ from datetime import datetime
 
 from btclab.common import Strategy
 
+
+
 @dataclass
 class Order():
     id: str                     # '12345-67890:09876/54321'

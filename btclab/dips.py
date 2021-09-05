@@ -2,12 +2,14 @@ from ccxt import Exchange
 from dataclasses import dataclass
 from datetime import datetime
 
-from btclab.logconf import logger
+import logging
 from btclab import database
 from btclab import crypto
 from btclab.common import Strategy
 from btclab.users import Account
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class DipsManager():
@@ -44,12 +46,12 @@ class DipsManager():
         
         
         if days_from_last_order == 0:
-            logger.debug(f'{symbol}: Today\'s order already placed!')
+            logger.info(f'{symbol}: Today\'s order already placed!')
             return
 
         if not ticker['percentage'] < min_drop:
             msg = f'{symbol}: Last 24h change is {ticker["percentage"]:+.2f}%, min drop of {min_drop:.2f}% not met'
-            logger.debug(msg)
+            logger.info(msg)
             return
 
         if ticker['percentage'] < min_drop and days_from_last_order > 0:
@@ -70,7 +72,7 @@ class DipsManager():
             if is_dummy:
                 msg += '. (Running in simulation mode, balance was not affected)'
             
-            logger.debug(msg)
+            logger.info(msg)
             if self.user_account.notify_to_telegram:
                 self.telegram_bot.send_msg(msg)
             return order
@@ -103,7 +105,7 @@ class DipsManager():
             if is_dummy:
                 msg += '. (Running in simulation mode, balance was not affected)'
             
-            logger.debug(msg)
+            logger.info(msg)
             if self.user_account.notify_to_telegram:
                 self.telegram_bot.send_msg(msg)
             return order

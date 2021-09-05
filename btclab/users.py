@@ -1,13 +1,15 @@
 import os
 import ccxt
+import logging
 from dataclasses import dataclass, InitVar
 from datetime import datetime, date
 from typing import Optional
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
-from btclab.logconf import logger
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Account():
