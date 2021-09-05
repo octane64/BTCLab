@@ -1,6 +1,7 @@
 import sqlite3
 import logging
 import os
+import sys
 from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
@@ -19,13 +20,7 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    if os.getenv('PYTHONPATH') is None:
-        db_file = 'database.db'
-    else:
-        db_file = os.getenv('PYTHONPATH') + 'database.db'
-    
-    # Make sure data directory has write access for everyone. If not, connect will fail
-    os.chmod(db_file, 0o777)
+    db_file = os.path.dirname(os.path.realpath(__file__)) + '/database.db'
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -183,6 +178,7 @@ def get_users() -> list[Account]:
                                 dips_config=dips_config)
         
         accounts.append(user_account)
+
 
     logger.info(f'Active user account(s) found in database: {len(accounts)}')
 
