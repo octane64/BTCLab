@@ -53,6 +53,7 @@ def create_db():
                 email text NOT NULL UNIQUE,
                 is_active integer DEFAULT 1,
                 created_on text NOT NULL,
+                last_contact text,
                 exchange_id text NOT NULL,
                 api_key text NOT NULL UNIQUE,
                 api_secret text NOT NULL UNIQUE,
@@ -142,7 +143,8 @@ def get_users() -> list[Account]:
                 telegram_bot_token,
                 telegram_chat_id,
                 notify_to_telegram,
-                notify_to_email
+                notify_to_email,
+                last_contact
             FROM users
             WHERE is_active = 1
             """
@@ -162,12 +164,14 @@ def get_users() -> list[Account]:
         telegram_bot = TelegramBot(row[8], row[9])
         dca_config = get_dca_config(row[0])
         dips_config = get_dip_config(row[0])
+        last_contact = parser.parse(row[12]) if row[12] is not None else None
         
         user_account = Account(user_id=row[0],
                                 first_name=row[1], 
                                 last_name=row[2],
                                 email=row[3],
                                 created_on=parser.parse(row[4]),
+                                last_contact=last_contact,
                                 exchange_id=row[5],
                                 api_key=row[6],
                                 api_secret=row[7], 
@@ -437,3 +441,22 @@ def get_symbols_stats() -> dict:
         symbols[row[0]] = {'std_dev': row[1], 'updated_on': row[2]}
     
     return symbols
+
+
+def update_last_contact(user_id: str):
+    conn = create_connection()
+    cur = conn.cursor()
+
+    sql_update = """UPDATE users 
+            SET last_contact = datetime('now','localtime')
+            WHERE user_id = ? """
+
+    try:
+        cur.execute(sql_update, (user_id, ))
+        conn.commit()
+    except sqlite3.Error as error:
+        logger.exception(f'Error while trying to update last contact date for user {user_id}')
+        raise error
+    finally:
+        cur.close()
+        conn.close()
