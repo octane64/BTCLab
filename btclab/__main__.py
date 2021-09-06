@@ -15,24 +15,9 @@ from btclab import data
 from btclab import database
 
 
-class OneLineExceptionFormatter(logging.Formatter):
-    def formatException(self, exc_info):
-        result = super().formatException(exc_info)
-        return repr(result)
- 
-    def format(self, record):
-        result = super().format(record)
-        if record.exc_text:
-            result = result.replace("\n", "")
-        return result
- 
-
-handler = logging.StreamHandler()
-formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
-handler.setFormatter(formatter)
+log_format = '%(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_format)
 logger = logging.getLogger()
-logger.setLevel(os.environ.get("LOGLEVEL", "INFO"))
-logger.addHandler(handler)
 
 @dataclass
 class Bot():
@@ -84,7 +69,7 @@ class Bot():
 @click.option('--dry-run', is_flag=True, help="Run in simulation mode (Don't affect balances)")
 def main(verbose, dry_run):
     if verbose:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
 
     database.create_db()
     accounts = database.get_users()

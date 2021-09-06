@@ -3,7 +3,7 @@ import ccxt
 import logging
 from dataclasses import dataclass, InitVar
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, ClassVar
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
@@ -26,6 +26,7 @@ class Account():
     dips_config: dict
     notify_to_telegram: bool
     notify_to_email: bool
+    GREETINGS_FILE: ClassVar['str'] = os.path.dirname(os.path.relpath(__file__)) + '/greetings.bin'
 
     def __post_init__(self, api_key, api_secret):
         self.exchange = ccxt.binance( # TODO Change to dynamically create instance of exchange from its id
@@ -48,12 +49,12 @@ class Account():
         return f'Good {time} {name}'
 
     def _set_as_greeted(self):
-        f = open('greetings.bin', 'wb')
+        f = open(self.GREETINGS_FILE, 'wb')
         f.close()
 
     def _already_greeted_today(self) -> bool:
         try:
-            last_greeting = os.path.getmtime('greetings.bin')
+            last_greeting = os.path.getmtime(self.GREETINGS_FILE)
         except FileNotFoundError:
             return False
         return date.today() == datetime.fromtimestamp(last_greeting).date()
