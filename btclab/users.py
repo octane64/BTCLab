@@ -60,7 +60,8 @@ class Account():
         return date.today() == datetime.fromtimestamp(last_greeting).date()
 
     def greet_with_symbols_summary(self):
-        if datetime.now().hour >= 7 and not self._already_greeted_today():
+        current_hour = datetime.now().hour
+        if current_hour in (7, 22) and not self._already_greeted_today():
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)
