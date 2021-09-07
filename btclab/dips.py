@@ -106,7 +106,8 @@ class DipsManager():
         user_id = self.user_account.user_id
         exchange = self.user_account.exchange
         symbol = ticker['symbol']
-        last_order = database.get_latest_order(user_id, symbol, dip_config['is_dummy'], Strategy.BUY_THE_DIPS)
+        is_dummy = dip_config['is_dummy'] or dry_run
+        last_order = database.get_latest_order(user_id, symbol, is_dummy, Strategy.BUY_THE_DIPS)
         if last_order is None:
             return None
         
@@ -123,8 +124,7 @@ class DipsManager():
             asset = symbol.split('/')[0]
             quote_ccy = symbol.split('/')[1]
             price = ticker['ask']
-            cost = last_order['cost'] + dip_config['increase_cost_by']
-            is_dummy = dip_config['is_dummy'] or dry_run
+            cost = last_order.cost + dip_config['increase_cost_by']
             
             try:
                 order = crypto.place_buy_order(exchange, symbol, price, cost, 'market', is_dummy)
