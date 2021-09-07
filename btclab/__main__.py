@@ -32,7 +32,6 @@ class Bot():
         return set(symbols)
 
     def run(self, dry_run: bool):
-        logger.info(f'BTCLab version {__version__}')
         for account in self.accounts:
             if dry_run:
                 logger.info('Running in simmulation mode. Balances will not be affected')
@@ -69,6 +68,7 @@ class Bot():
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
 @click.option('--dry-run', is_flag=True, help="Run in simulation mode (Don't affect balances)")
 def main(verbose, dry_run):
+    logger.info(f'BTCLab version {__version__}')
     if verbose:
         logger.setLevel(logging.DEBUG)
 
