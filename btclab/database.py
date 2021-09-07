@@ -71,6 +71,9 @@ def create_db():
             days_to_buy_again integer NOT NULL,
             is_active integer DEFAULT 1,
             is_dummy integer DEFAULT 0,
+            last_check_date text,
+            last_check_result text,
+            UNIQUE (user_id, symbol),
             FOREIGN KEY(user_id) REFERENCES users(user_id)
         );"""
 
@@ -85,6 +88,9 @@ def create_db():
             additional_drop_cost_increase real DEFAULT 0,
             is_active integer DEFAULT 1,
             is_dummy integer DEFAULT 0,
+            last_check_date text,
+            last_check_result text,
+            UNIQUE (user_id, symbol),
             FOREIGN KEY(user_id) REFERENCES users(user_id)
         );"""
 
@@ -165,7 +171,7 @@ def get_users() -> list[Account]:
         dca_config = get_dca_config(row[0])
         dips_config = get_dip_config(row[0])
         last_contact = parser.parse(row[12]) if row[12] is not None else None
-        
+
         user_account = Account(user_id=row[0],
                                 first_name=row[1], 
                                 last_name=row[2],
@@ -189,7 +195,7 @@ def get_users() -> list[Account]:
     return accounts
 
 
-def get_dca_config(user_id: str) -> dict:
+def get_dca_config(user_id: int) -> dict:
     """
     Returns a dictionary with the active configuration params that user_id has set for recurrent buys (dca)
     """
@@ -199,7 +205,9 @@ def get_dca_config(user_id: str) -> dict:
                 symbol,
                 order_cost,
                 days_to_buy_again,
-                is_dummy
+                is_dummy,
+                last_check_date,
+                last_check_result
             FROM dca_config
             WHERE user_id = ? AND is_active = 1
             """
@@ -219,12 +227,14 @@ def get_dca_config(user_id: str) -> dict:
             'order_cost': row[1], 
             'days_to_buy_again': row[2],
             'is_dummy': row[3],
+            'last_check_date': row[4],
+            'last_check_result': row[5]
         }
     
     return dca_config
 
 
-def get_dip_config(user_id: str) -> dict:
+def get_dip_config(user_id: int) -> dict:
     """
     Returns a dictionary with the active configuration params that user_id has set for buying dips
     """
@@ -237,7 +247,9 @@ def get_dip_config(user_id: str) -> dict:
                 min_drop_units,
                 min_additional_drop_pct,
                 additional_drop_cost_increase,
-                is_dummy
+                is_dummy,
+                last_check_date,
+                last_check_result
             FROM dip_config
             WHERE user_id = ? AND is_active = 1
             """
@@ -259,13 +271,15 @@ def get_dip_config(user_id: str) -> dict:
             'min_drop_units': row[3],
             'min_additional_drop_pct': row[4],
             'additional_drop_cost_increase': row[5],
-            'is_dummy': row[6]
+            'is_dummy': row[6],
+            'last_check_date': row[7],
+            'last_check_result': row[8]
         }
     
     return dip_config
 
 
-def get_latest_order(user_id: str, symbol: str, is_dummy: bool, strategy: Strategy = None) -> Optional[Order]:
+def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strategy = None) -> Optional[Order]:
     """
     Returns the latest order of a user for a given strategy
     """
@@ -340,7 +354,7 @@ def save_order(order: dict, strategy: Strategy):
         'strategy': strategy.value,
         'is_dummy': int(order['is_dummy']),
         'user_id': order['user_id']
-        }
+    }
     
     try:
         cur = conn.cursor()
@@ -355,7 +369,7 @@ def save_order(order: dict, strategy: Strategy):
         conn.close()
 
 
-def days_from_last_order(user_id: str, symbol: str, strategy: Strategy, is_dummy: bool) -> int:
+def days_from_last_order(user_id: int, symbol: str, strategy: Strategy, is_dummy: bool) -> int:
     """
     Returns the number of days that have passed since the last order was placed for symbol, 
     strategy and user, or -1 if no orders have been placed
@@ -443,7 +457,7 @@ def get_symbols_stats() -> dict:
     return symbols
 
 
-def update_last_contact(user_id: str):
+def update_last_contact(user_id: int):
     conn = create_connection()
     cur = conn.cursor()
 
@@ -456,6 +470,34 @@ def update_last_contact(user_id: str):
         conn.commit()
     except sqlite3.Error as error:
         logger.exception(f'Error while trying to update last contact date for user {user_id}')
+        raise error
+    finally:
+        cur.close()
+        conn.close()
+
+
+def update_last_check(user_id: int, symbol: str, strategy: Strategy, result: str):
+    conn = create_connection()
+    cur = conn.cursor()
+    
+    if strategy == Strategy.DCA:
+        table = 'dca_config'
+    elif strategy == Strategy.BUY_THE_DIPS:
+        table = 'dip_config'
+    else:
+        raise ValueError(f'Unkown strategy: {strategy.value}')
+
+
+    sql_update = f"""UPDATE {table} 
+            SET last_check_date = datetime('now','localtime'),
+                last_check_result = ?
+            WHERE user_id = ? AND symbol = ?"""
+
+    try:
+        cur.execute(sql_update, (result, user_id, symbol))
+        conn.commit()
+    except sqlite3.Error as error:
+        logger.exception(f'Error while trying to update last check result for user {user_id} and symbol {symbol}')
         raise error
     finally:
         cur.close()

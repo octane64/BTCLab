@@ -15,8 +15,8 @@ from btclab import data
 from btclab import database
 
 
-log_format = '%(name)s - %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format)
+log_format = '%(asctime)s - %(levelname)-8s - %(name)-15s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
 
 @dataclass
@@ -42,7 +42,7 @@ class Bot():
                 database.update_last_contact(account.user_id)
 
             if account.dca_config:
-                logger.info(f'Checking days since last purchase for the DCA strategy')
+                logger.info(f'Checking recurrent purchases for the DCA strategy')
                 dca_manager = DCAManager(account)
                 dca_manager.buy(dry_run)
             else:
@@ -51,7 +51,7 @@ class Bot():
             if account.dips_config:
                 logger.info(f'Checking price drops for the dip buying strategy')
                 all_symbols = database.get_symbols()
-                symbols_stats = database.get_symbols_stats()
+                symbols_stats = database.get_symbols_stats() # TODO Calculate again if older than x days
                 if not symbols_stats or not all(symbol in symbols_stats for symbol in all_symbols):
                     logger.info(f'Getting information for symbols {", ".join(all_symbols)}')
                     std_devs = data.get_std_dev(account.exchange, all_symbols)
@@ -60,10 +60,10 @@ class Bot():
                 
                 
                 dips_manager = DipsManager(account)
-                dips_manager.buydips(symbols_stats, dry_run)
+                dips_manager.buy_dips(symbols_stats, dry_run)
             else:
-                logger.warning(f'No dips config found for user id {account.user_id}')
-            # TODO Check balances
+                logger.info(f'No dips config found for user id {account.user_id}')
+
 
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
@@ -83,11 +83,7 @@ def main(verbose, dry_run):
 
 
 if __name__ == '__main__':
-    try:
-        exit(main())
-    except Exception:
-        logging.exception("Exception in main(): ")
-        exit(1)
+    main()
 
 
 

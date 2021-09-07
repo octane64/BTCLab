@@ -1,5 +1,8 @@
 import logging
+from datetime import datetime
 from dataclasses import dataclass
+from dateutil import parser 
+from ccxt.base.errors import InsufficientFunds
 
 from btclab.common import Strategy
 from btclab.users import Account
@@ -43,22 +46,40 @@ class DCAManager():
             user_id = self.user_account.user_id
             days_left = self._days_to_buy(symbol, config['is_dummy'])
             if days_left != 0:
-                msg = f'{symbol}: Not time to buy yet. {days_left} day(s) left for the next purchase'
+                msg = f'{symbol}: {days_left} day(s) left for the next purchase'
                 logger.info(msg)
                 continue
-                
-            order = crypto.place_buy_order(exchange=self.user_account.exchange, 
-                                            symbol=symbol, 
-                                            price=None, 
-                                            order_cost=cost, 
-                                            order_type='market', 
-                                            strategy=Strategy.DCA,
-                                            is_dummy=config['is_dummy'],
-                                            dry_run=dry_run,
-                                            user_id=user_id)
-            database.save_order(order, Strategy.DCA)
-            
+
+            if config['last_check_result'] == 'Insufficient funds':
+                last_check = parser.parse(config['last_check_date'])
+                time_since_last_check = datetime.now() - last_check
+                minutes = (time_since_last_check.seconds // 60) % 60
+                if minutes < 30:
+                    logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol} after insufficient funds')
+                    continue
+
+            try:
+                order = crypto.place_buy_order(exchange=self.user_account.exchange, 
+                                                symbol=symbol, 
+                                                price=None, 
+                                                order_cost=cost, 
+                                                order_type='market', 
+                                                strategy=Strategy.DCA,
+                                                is_dummy=config['is_dummy'],
+                                                dry_run=dry_run,
+                                                user_id=user_id)
+            except InsufficientFunds:
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Insufficient funds')
+                msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
+                logger.info(msg)
+                quote_ccy = symbol.split('/')[1]
+                base_ccy = symbol.split('/')[0]
+                self.user_account.telegram_bot.send_msg(msg)
+                continue
+
             if order:
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
+                database.save_order(order, Strategy.DCA)
                 msg = self._get_dca_buy_msg(order)
                 logger.info(msg)
                 self.user_account.telegram_bot.send_msg(msg)

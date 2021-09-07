@@ -57,7 +57,7 @@ class Account():
 
     def greet_with_symbols_summary(self) -> bool:
         current_hour = datetime.now().hour
-        if current_hour in (7, 22, 23) and not self.contacted_today():
+        if current_hour in (7, 22) and not self.contacted_today():
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)
