@@ -127,7 +127,8 @@ class DipsManager():
             cost = last_order.cost + dip_config['additional_drop_cost_increase']
             
             try:
-                order = crypto.place_buy_order(exchange, symbol, price, cost, 'market', is_dummy)
+                order = crypto.place_buy_order(exchange, user_id, symbol, price, cost, 
+                                                'market', Strategy.BUY_THE_DIPS, is_dummy, dry_run)
             except InsufficientFunds:
                 database.update_last_check(self.user_account.user_id)
                 logger.info('Insufficient funds')
