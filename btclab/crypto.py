@@ -20,20 +20,6 @@ def get_non_supported_symbols(exchange, symbols: List) -> set:
     return set(symbols).difference(set(exchange.symbols))
 
 
-def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
-    """
-    Returns true if symbol was bought within the last hours, false otherwise
-    """
-    if symbol not in orders:
-        return False    
-    
-    now = datetime.now()
-    timestamp = orders[symbol]['timestamp'] / 1000
-    bought_on = datetime.fromtimestamp(timestamp)
-    diff = now - bought_on
-    return diff.days <= hours
-
-
 def get_symbols_summary(symbols: list[str], exchange: Exchange) -> Optional[str]:
     if not exchange.has['fetchTickers']:
         logger.warning(f'{exchange.name} exchange does not support fetchTickers method')

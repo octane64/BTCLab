@@ -8,7 +8,7 @@ from btclab.common import Strategy
 @dataclass
 class Order():
     id: str                     # '12345-67890:09876/54321'
-    timestamp: int              # 1502962946216, order placing/opening Unix timestamp in milliseconds
+    datetime_: int              # ISO8601 datetime string with milliseconds
     symbol: str                 # 'ETH/BTC', symbol
     order_type: str             # 'market', 'limit'
     side: str                   # 'buy', 'sell'
@@ -26,10 +26,9 @@ class Order():
         https://ccxt.readthedocs.io/en/latest/manual.html#orders
         """
         right_now = datetime.now()
-        ts = int(datetime.timestamp(right_now))*1000
         order = {
-                'id': ts,
-                'timestamp': ts, # order placing/opening Unix timestamp in milliseconds
+                'id': right_now.timestamp(),
+                'datetime': right_now.isoformat(),
                 'symbol': symbol,
                 'type': order_type,
                 'side': side,

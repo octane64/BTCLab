@@ -96,8 +96,8 @@ def create_db():
 
     orders_table = """
         CREATE TABLE IF NOT EXISTS orders (
-            order_id text,
-            timestamp integer NOT NULL,
+            order_id text NOT NULL,
+            datetime text NOT NULL,
             symbol text NOT NULL,
             type text NOT NULL,
             side text NOT NULL,
@@ -288,7 +288,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
     where_clause = 'AND strategy = ?' if strategy else ''
     sql = f"""SELECT
                 order_id,
-                timestamp,
+                datetime,
                 symbol,
                 type,
                 side,
@@ -299,7 +299,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
                 is_dummy
             FROM orders
             WHERE user_id = ? AND symbol = ? AND is_dummy = ? {where_clause} 
-            ORDER BY timestamp DESC
+            ORDER BY datetime DESC
             LIMIT 1
             """
     
@@ -320,7 +320,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
         return None
 
     order = Order(id=row[0],
-                    timestamp=row[1],
+                    datetime_=row[1],
                     symbol=row[2],
                     order_type=row[3],
                     side=row[4],
@@ -336,15 +336,15 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
 def save_order(order: dict, strategy: Strategy):
     conn = create_connection()
     sql = """
-            INSERT INTO orders (order_id, timestamp, symbol, type, side, price, 
+            INSERT INTO orders (order_id, datetime, symbol, type, side, price, 
                                 amount, cost, strategy, is_dummy, user_id) 
             
-            VALUES (:order_id, :timestamp, :symbol, :type, :side, :price, 
+            VALUES (:order_id, :datetime, :symbol, :type, :side, :price, 
                     :amount, :cost, :strategy, :is_dummy, :user_id) """
     
     values = {
         'order_id': order['id'],
-        'timestamp': order['timestamp'],
+        'datetime': order['datetime'],
         'symbol': order['symbol'],
         'type': order['type'],
         'side': order['side'],
@@ -378,7 +378,7 @@ def days_from_last_order(user_id: int, symbol: str, strategy: Strategy, is_dummy
     if last_order is None:
         return -1
     
-    order_date = datetime.fromtimestamp(last_order.timestamp/1000)
+    order_date = parser.parse(last_order.datetime_)
     diff = datetime.now() - order_date
     return diff.days
 
@@ -502,3 +502,20 @@ def update_last_check(user_id: int, symbol: str, strategy: Strategy, result: str
     finally:
         cur.close()
         conn.close()
+
+if __name__ =='__main__':
+    conn = create_connection()
+    sql = """SELECT rowid, datetime FROM orders"""
+
+    cur = conn.cursor()
+    cur.execute(sql)
+    rows = cur.fetchall()
+
+    for row in rows:
+        update = f"""UPDATE orders SET datetime = ? WHERE rowid = ?"""
+        cur = conn.cursor()
+        d = datetime.fromtimestamp(int(row[1])/1000)
+        cur.execute(update, (d.isoformat(), row[0]))
+    conn.commit()
+    conn.close()
+

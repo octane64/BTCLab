@@ -17,20 +17,6 @@ logger = logging.getLogger(__name__)
 class DipsManager():
     user_account: Account
 
-    @staticmethod
-    def bought_within_the_last(hours: float, symbol:str, orders: dict) -> bool:
-        """
-        Returns true if symbol was bought within the last hours, false otherwise
-        """
-        if symbol not in orders:
-            return False    
-        
-        now = datetime.now()
-        timestamp = orders[symbol]['timestamp'] / 1000
-        bought_on = datetime.fromtimestamp(timestamp)
-        diff = now - bought_on
-        return diff.days <= hours
-
     def _buy_initial_drop(self, ticker, dip_config: dict, symbols_stats: dict, dry_run: bool):
         """
         Places a new buy order if at current price the change in the last 24h represents a drop
