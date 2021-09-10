@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from ccxt import Exchange
 from ccxt.base.errors import InsufficientFunds
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from btclab import database
 from btclab import crypto
 from btclab.common import Strategy
 from btclab.users import Account
+from btclab.order import Order
 
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,7 @@ class DipsManager():
             base_ccy = symbol.split('/')[0]
             msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
             self.user_account.telegram_bot.send_msg(msg)
+            return None
 
         msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.6g}. '
                 f'Drop in last 24h is {ticker["percentage"]:+.2f}%')
@@ -85,7 +88,7 @@ class DipsManager():
         return order
         
 
-    def _buy_additional_drop(self, ticker, dip_config: dict, dry_run: bool):
+    def _buy_additional_drop(self, ticker, dip_config: dict, dry_run: bool) -> Optional[Order]:
         """
         Places a new buy order if symbol has been bought recently and last 24h drop 
         surpasses the min_next_drop limit
@@ -123,6 +126,7 @@ class DipsManager():
                 base_ccy = symbol.split('/')[0]
                 msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
                 self.user_account.telegram_bot.send_msg(msg)
+                return None
                 
             msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.2f}. '
                 f'Current price is {change_from_last_order:.2f}% from the previous buy order')
