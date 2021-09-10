@@ -18,6 +18,7 @@ class Order():
     fee: dict                   # fee info, if available {'currency': 'BTC', 'cost': 0.0009, 'rate': 0.002}
     strategy: Strategy
     is_dummy: bool
+    user_id: int
 
     @staticmethod
     def get_dummy_order(user_id, symbol, order_type, side, price, cost, strategy) -> dict:

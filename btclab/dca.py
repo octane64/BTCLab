@@ -70,10 +70,10 @@ class DCAManager():
                                                 user_id=user_id)
             except InsufficientFunds:
                 database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Insufficient funds')
-                msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
-                logger.info(msg)
                 quote_ccy = symbol.split('/')[1]
                 base_ccy = symbol.split('/')[0]
+                msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
+                logger.info(msg)
                 self.user_account.telegram_bot.send_msg(msg)
                 continue
 

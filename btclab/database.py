@@ -328,6 +328,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
                     cost=row[7],
                     fee=None,
                     strategy=strategy.value,
+                    user_id=user_id,
                     is_dummy=bool(row[8]))
     return order
 
