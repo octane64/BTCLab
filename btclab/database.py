@@ -1,7 +1,6 @@
 import sqlite3
 import logging
 import os
-import sys
 from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
@@ -342,9 +341,11 @@ def save_order(order: dict, strategy: Strategy):
             VALUES (:order_id, :datetime, :symbol, :type, :side, :price, 
                     :amount, :cost, :strategy, :is_dummy, :user_id) """
     
+
+    # dt = order['datetime']
     values = {
         'order_id': order['id'],
-        'datetime': order['datetime'],
+        'datetime': order['datetime'][:19],  # Omit timezone info
         'symbol': order['symbol'],
         'type': order['type'],
         'side': order['side'],
@@ -502,20 +503,4 @@ def update_last_check(user_id: int, symbol: str, strategy: Strategy, result: str
     finally:
         cur.close()
         conn.close()
-
-if __name__ =='__main__':
-    conn = create_connection()
-    sql = """SELECT rowid, datetime FROM orders"""
-
-    cur = conn.cursor()
-    cur.execute(sql)
-    rows = cur.fetchall()
-
-    for row in rows:
-        update = f"""UPDATE orders SET datetime = ? WHERE rowid = ?"""
-        cur = conn.cursor()
-        d = datetime.fromtimestamp(int(row[1])/1000)
-        cur.execute(update, (d.isoformat(), row[0]))
-    conn.commit()
-    conn.close()
 

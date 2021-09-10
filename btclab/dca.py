@@ -78,8 +78,8 @@ class DCAManager():
                 continue
 
             if order:
-                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
                 database.save_order(order, Strategy.DCA)
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
                 msg = self._get_dca_buy_msg(order)
                 logger.info(msg)
                 self.user_account.telegram_bot.send_msg(msg)

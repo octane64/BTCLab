@@ -116,7 +116,7 @@ class DipsManager():
                 order = crypto.place_buy_order(exchange, user_id, symbol, price, cost, 
                                                 'market', Strategy.BUY_THE_DIPS, is_dummy, dry_run)
             except InsufficientFunds:
-                database.update_last_check(self.user_account.user_id)
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Insufficient funds')
                 logger.info('Insufficient funds')
                 quote_ccy = symbol.split('/')[1]
                 base_ccy = symbol.split('/')[0]
