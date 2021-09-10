@@ -112,7 +112,7 @@ class DipsManager():
             quote_ccy = symbol.split('/')[1]
             price = ticker['ask']
             cost = last_order.cost + dip_config['additional_drop_cost_increase']
-            
+            order = None
             try:
                 order = crypto.place_buy_order(exchange, user_id, symbol, price, cost, 
                                                 'market', Strategy.BUY_THE_DIPS, is_dummy, dry_run)
