@@ -53,7 +53,8 @@ class DipsManager():
         quote_ccy = symbol.split('/')[1]
         price = ticker['last']
         is_dummy = dip_config['is_dummy'] or dry_run
-        
+        order = None
+
         try:
             order = crypto.place_buy_order(exchange=self.user_account.exchange, 
                                             user_id=user_id,
