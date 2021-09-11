@@ -342,11 +342,9 @@ def save_order(order: dict, strategy: Strategy):
             VALUES (:order_id, :datetime, :symbol, :type, :side, :price, 
                     :amount, :cost, :strategy, :is_dummy, :user_id) """
     
-
-    # dt = order['datetime']
     values = {
         'order_id': order['id'],
-        'datetime': order['datetime'][:19],  # Omit timezone info
+        'datetime': order['datetime'],
         'symbol': order['symbol'],
         'type': order['type'],
         'side': order['side'],
@@ -373,15 +371,19 @@ def save_order(order: dict, strategy: Strategy):
 
 def days_from_last_order(user_id: int, symbol: str, strategy: Strategy, is_dummy: bool) -> int:
     """
-    Returns the number of days that have passed since the last order was placed for symbol, 
-    strategy and user, or -1 if no orders have been placed
+    Returns the number of days that have passed since the last order was placed 
+    for given symbol, strategy and user, or -1 if no orders have been placed
     """
     last_order = get_latest_order(user_id, symbol, is_dummy, strategy)
     if last_order is None:
+        logger.info(f'An order to buy {symbol} has never been placed')
         return -1
     
     order_date = parser.parse(last_order.datetime_)
     diff = datetime.now() - order_date
+    assert diff.days >= 0, f'Last order for {symbol} (id {last_order.id}) has a date in the future {last_order.datetime_}'
+    days = 'today' if diff.days == 0 else f'{diff.days} days ago'
+    logger.info(f'Last order to buy {symbol} was placed {days}')
     return diff.days
 
 

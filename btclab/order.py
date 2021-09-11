@@ -28,7 +28,7 @@ class Order():
         """
         right_now = datetime.now()
         order = {
-                'id': right_now.timestamp(),
+                'id': int(right_now.timestamp()),
                 'datetime': right_now.isoformat(),
                 'symbol': symbol,
                 'type': order_type,

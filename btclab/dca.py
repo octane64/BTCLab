@@ -37,7 +37,7 @@ class DCAManager():
 
         msg = f'Periodic buys: buying {order["cost"]:.2g} of {order["symbol"]} @ {order["price"]:,.5g}'
         if order['is_dummy']:
-            msg += '. (Running in simulation mode, balance was not affected)'
+            msg += '. (Simulation)'
         return msg
 
     def buy(self, dry_run: bool):
@@ -45,8 +45,9 @@ class DCAManager():
             cost = config['order_cost']
             user_id = self.user_account.user_id
             days_left = self._days_to_buy(symbol, config['is_dummy'])
+            
             if days_left != 0:
-                msg = f'{symbol}: {days_left} day(s) left for the next purchase'
+                msg = f'Next purchase of {symbol} will occur in {days_left} day(s)'
                 logger.info(msg)
                 continue
 
@@ -78,8 +79,8 @@ class DCAManager():
                 continue
 
             if order:
-                database.save_order(order, Strategy.DCA)
-                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
                 msg = self._get_dca_buy_msg(order)
                 logger.info(msg)
                 self.user_account.telegram_bot.send_msg(msg)
+                database.save_order(order, Strategy.DCA)
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
