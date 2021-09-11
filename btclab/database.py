@@ -375,8 +375,9 @@ def days_from_last_order(user_id: int, symbol: str, strategy: Strategy, is_dummy
     for given symbol, strategy and user, or -1 if no orders have been placed
     """
     last_order = get_latest_order(user_id, symbol, is_dummy, strategy)
+    condition = {Strategy.DCA: 'periodically', Strategy.BUY_THE_DIPS: 'in a price drop'}
     if last_order is None:
-        logger.info(f'An order to buy {symbol} has never been placed')
+        logger.info(f'An order to buy {symbol} {condition[strategy]} has never been placed')
         return -1
     
     order_date = parser.parse(last_order.datetime_)

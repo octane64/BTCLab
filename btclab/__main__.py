@@ -2,10 +2,7 @@ import os
 import sys
 import logging
 import click
-from retry import retry
-from datetime import date, datetime
-from dataclasses import dataclass, InitVar
-from ccxt.base.errors import InsufficientFunds, NetworkError, RequestTimeout
+from dataclasses import dataclass
 
 from btclab import __version__
 from btclab.dca import DCAManager
