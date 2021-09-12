@@ -67,11 +67,11 @@ class Account():
             msg = 'You don\'t have any periodic purchase configured'
         else:
             for symbol, config in self.dca_config.items():
-                if config['days_to_buy_again'] > 0:
-                    if config['days_to_buy_again'] == 1:
+                if config['frequency'] > 0:
+                    if config['frequency'] == 1:
                         days_remaining = 'tomorrow'
-                    elif config['days_to_buy_again'] > 1:
-                        days_remaining = f'in {str(config["days_to_buy_again"])} days'
+                    elif config['frequency'] > 1:
+                        days_remaining = f'in {str(config["frequency"])} days'
                 msg += f'\n - {symbol} {days_remaining}' 
         
         return msg
