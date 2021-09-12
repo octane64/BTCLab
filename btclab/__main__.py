@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 import click
@@ -12,7 +11,7 @@ from btclab import data
 from btclab import database
 
 
-log_format = '%(asctime)s - %(levelname)-8s - %(name)-15s - %(message)s'
+log_format = '%(asctime)s - %(levelname)-8s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
 
@@ -34,8 +33,7 @@ class Bot():
                 logger.info('Running in simmulation mode. Balances will not be affected')
             logger.info(f'Checking information for user with id {account.user_id}')
             
-            if account.greet_with_symbols_summary():
-                database.update_last_contact(account.user_id)
+            account.greet_with_symbols_summary()
 
             if account.dca_config:
                 logger.info(f'Checking recurrent purchases for the DCA strategy')

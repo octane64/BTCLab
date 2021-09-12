@@ -47,7 +47,7 @@ class DCAManager():
             days_left = self._days_to_buy(symbol, config['is_dummy'])
             
             if days_left != 0:
-                msg = f'Next purchase of {symbol} will occur in {days_left} day(s)'
+                msg = f'Next purchase of {symbol} will occur in {days_left} days'
                 logger.info(msg)
                 continue
 

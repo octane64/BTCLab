@@ -1,8 +1,11 @@
 import ccxt
 import logging
+import random
 from dataclasses import dataclass, InitVar
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional
+from retry import retry
+from ccxt import NetworkError
 
 from btclab.telegram import TelegramBot
 from btclab import crypto
@@ -45,27 +48,53 @@ class Account():
             time = 'afternoon'
         else:
             time = 'evening'
-        return f'Good {time} {name}'
+        formal = 'Good ' + time
+        casual = 'What\'s up'
+        tmp = formal if random.randrange(2) else casual
+        return f'{tmp} {name}'
 
-    def contacted_today(self) -> bool:
+    def contacted_in_the_last(self, hours: int) -> bool:
         if self.last_contact is None:
             return False
         
-        if date.today() == self.last_contact.date():
-            return True
-        return False
+        duration = datetime.now() - self.last_contact
+        duration_in_hours = divmod(duration.total_seconds(), 3600)[0]
+        return duration_in_hours < hours
 
-    def greet_with_symbols_summary(self) -> bool:
+    def get_dca_summary(self) -> str:
+        msg = 'Your next periodic purchases:'
+        if len(self.dca_config) == 0:
+            msg = 'You don\'t have any periodic purchase configured'
+        else:
+            for symbol, config in self.dca_config.items():
+                if config['days_to_buy_again'] > 0:
+                    if config['days_to_buy_again'] == 1:
+                        days_remaining = 'tomorrow'
+                    elif config['days_to_buy_again'] > 1:
+                        days_remaining = f'in {str(config["days_to_buy_again"])} days'
+                msg += f'\n - {symbol} {days_remaining}' 
+        
+        return msg
+
+    @retry(NetworkError, delay=15, jitter=5, logger=logger)
+    def greet_with_symbols_summary(self):
+        from btclab import database
         current_hour = datetime.now().hour
-        if current_hour in (7, 22) and not self.contacted_today():
+        if current_hour in (7, 8, 21, 22) and not self.contacted_in_the_last(hours=6):
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)
             msg = self._greet() + '. ' + crypto.get_symbols_summary(all_symbols, self.exchange)
+            msg += '\n' + self.get_dca_summary()
+            msg += f'\n\nAvaiable balance:'
             
+            quote_currencies = set([symbol.split('/')[1] for symbol in all_symbols])
+            for quote_ccy in quote_currencies:
+                balance = self.exchange.fetch_balance()[quote_ccy]['free']
+                msg += f'\n - {quote_ccy}: {balance:,.2f}'
 
             if self.notify_to_telegram:
                 self.telegram_bot.send_msg(msg)
+                database.update_last_contact(self.user_id)
             
-            return True
-        return False
+
