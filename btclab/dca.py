@@ -26,7 +26,7 @@ class DCAManager():
         if days_since_last_dca == -1:
             days_left = 0
         else:
-            days_left = self.user_account.dca_config[symbol]['days_to_buy_again'] - days_since_last_dca
+            days_left = self.user_account.dca_config[symbol]['frequency'] - days_since_last_dca
         
         return days_left
 

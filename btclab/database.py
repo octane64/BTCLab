@@ -1,6 +1,5 @@
 import sqlite3
 import logging
-import os
 from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
@@ -19,10 +18,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    db_file = os.path.dirname(os.path.realpath(__file__)) + '/database.db'
+    # db_file = os.path.dirname(os.path.realpath(__file__)) + '/database.db'
     conn = None
     try:
-        conn = sqlite3.connect(db_file)
+        conn = sqlite3.connect('database.db')
     except Error:
         logger.exception('Error while trying to connect to the database')
 
@@ -44,8 +43,8 @@ def create_db():
     """
     Creates the database
     """
-    users_table = """
-            CREATE TABLE IF NOT EXISTS users (
+    user_table = """
+            CREATE TABLE IF NOT EXISTS user (
                 user_id integer PRIMARY KEY,
                 first_name text NOT NULL,
                 last_name text NOT NULL,
@@ -67,13 +66,13 @@ def create_db():
             user_id integer NOT NULL,
             symbol text NOT NULL,
             order_cost real NOT NULL,
-            days_to_buy_again integer NOT NULL,
+            frequency integer NOT NULL,
             is_active integer DEFAULT 1,
             is_dummy integer DEFAULT 0,
             last_check_date text,
             last_check_result text,
             UNIQUE (user_id, symbol),
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
+            FOREIGN KEY(user_id) REFERENCES user(user_id)
         );"""
 
     dip_config_table = """
@@ -90,11 +89,11 @@ def create_db():
             last_check_date text,
             last_check_result text,
             UNIQUE (user_id, symbol),
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
+            FOREIGN KEY(user_id) REFERENCES user(user_id)
         );"""
 
-    orders_table = """
-        CREATE TABLE IF NOT EXISTS orders (
+    order_table = """
+        CREATE TABLE IF NOT EXISTS exchange_order (
             order_id text NOT NULL,
             datetime text NOT NULL,
             symbol text NOT NULL,
@@ -106,11 +105,11 @@ def create_db():
             strategy text NOT NULL,
             is_dummy integer NOT NULL,
             user_id integer NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
+            FOREIGN KEY(user_id) REFERENCES user(user_id)
         );"""
 
-    symbols_stats_table = """
-        CREATE TABLE IF NOT EXISTS symbols_stats (
+    symbol = """
+        CREATE TABLE IF NOT EXISTS symbol (
             symbol text NOT NULL,
             std_dev real NOT NULL,
             updated_on integer NOT NULL,
@@ -120,11 +119,11 @@ def create_db():
     # create tables
     conn = create_connection()
     if conn is not None:
-        create_table(conn, users_table)
+        create_table(conn, user_table)
         create_table(conn, dca_config_table)
         create_table(conn, dip_config_table)
-        create_table(conn, orders_table)
-        create_table(conn, symbols_stats_table)
+        create_table(conn, order_table)
+        create_table(conn, symbol)
         conn.close()
     else:
         logger.exception("Error! cannot create the database connection.")
@@ -150,7 +149,7 @@ def get_users() -> list[Account]:
                 notify_to_telegram,
                 notify_to_email,
                 last_contact
-            FROM users
+            FROM user
             WHERE is_active = 1
             """
     
@@ -203,7 +202,7 @@ def get_dca_config(user_id: int) -> dict:
     sql = """SELECT
                 symbol,
                 order_cost,
-                days_to_buy_again,
+                frequency,
                 is_dummy,
                 last_check_date,
                 last_check_result
@@ -224,7 +223,7 @@ def get_dca_config(user_id: int) -> dict:
     for row in rows:
         dca_config[row[0]] = {
             'order_cost': row[1], 
-            'days_to_buy_again': row[2],
+            'frequency': row[2],
             'is_dummy': row[3],
             'last_check_date': row[4],
             'last_check_result': row[5]
@@ -296,7 +295,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
                 cost,
                 strategy,
                 is_dummy
-            FROM orders
+            FROM exchange_order
             WHERE user_id = ? AND symbol = ? AND is_dummy = ? {where_clause} 
             ORDER BY datetime DESC
             LIMIT 1
@@ -336,7 +335,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
 def save_order(order: dict, strategy: Strategy):
     conn = create_connection()
     sql = """
-            INSERT INTO orders (order_id, datetime, symbol, type, side, price, 
+            INSERT INTO exchange_order (order_id, datetime, symbol, type, side, price, 
                                 amount, cost, strategy, is_dummy, user_id) 
             
             VALUES (:order_id, :datetime, :symbol, :type, :side, :price, 
@@ -412,12 +411,12 @@ def load_symbol_stats(stats: dict):
     cur = conn.cursor()
     symbols = get_symbols()
 
-    sql_update = """UPDATE symbols_stats 
+    sql_update = """UPDATE symbol 
             SET std_dev = ?, 
                 updated_on = datetime('now', 'localtime')
             WHERE symbol = ? """
 
-    sql_insert = """INSERT INTO symbols_stats (symbol, std_dev, updated_on) 
+    sql_insert = """INSERT INTO symbol (symbol, std_dev, updated_on) 
                 VALUES (?, ?, datetime('now', 'localtime')) """
 
     try:
@@ -444,7 +443,7 @@ def get_symbols_stats() -> dict:
                 symbol,
                 std_dev,
                 updated_on
-            FROM symbols_stats"""
+            FROM symbol"""
     try:
         cur.execute(sql)
         rows = cur.fetchall()
@@ -466,7 +465,7 @@ def update_last_contact(user_id: int):
     conn = create_connection()
     cur = conn.cursor()
 
-    sql_update = """UPDATE users 
+    sql_update = """UPDATE user 
             SET last_contact = datetime('now','localtime')
             WHERE user_id = ? """
 
