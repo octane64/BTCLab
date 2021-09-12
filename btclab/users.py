@@ -80,7 +80,7 @@ class Account():
     def greet_with_symbols_summary(self):
         from btclab import database
         current_hour = datetime.now().hour
-        if current_hour in (7, 8, 21, 22) and not self.contacted_in_the_last(hours=6):
+        if current_hour in (7, 8, 9, 10, 21, 22) and not self.contacted_in_the_last(hours=6):
             d1 = set(self.dca_config.keys())
             d2 = set(self.dips_config.keys())
             all_symbols = d1.union(d2)

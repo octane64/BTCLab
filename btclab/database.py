@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import logging
 from datetime import datetime
@@ -18,10 +19,10 @@ def create_connection() -> Connection:
     """
     Returns a connection to the SQLite database specified by db_file
     """
-    # db_file = os.path.dirname(os.path.realpath(__file__)) + '/database.db'
+    db_file = os.path.dirname(os.path.realpath(__file__)) + '/database.db'
     conn = None
     try:
-        conn = sqlite3.connect('database.db')
+        conn = sqlite3.connect(db_file)
     except Error:
         logger.exception('Error while trying to connect to the database')
 
