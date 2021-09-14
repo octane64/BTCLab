@@ -34,6 +34,7 @@ class Bot():
             logger.info(f'Checking information for user with id {account.user_id}')
             
             account.greet_with_symbols_summary()
+            database.update_last_contact(account.user_id)
 
             if account.dca_config:
                 logger.info(f'Checking recurrent purchases for the DCA strategy')

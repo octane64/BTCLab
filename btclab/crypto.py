@@ -17,16 +17,7 @@ def get_non_supported_symbols(exchange, symbols: List) -> set:
     return set(symbols).difference(set(exchange.symbols))
 
 
-def get_symbols_summary(symbols: list[str], exchange: Exchange) -> Optional[str]:
-    if not exchange.has['fetchTickers']:
-        logger.warning(f'{exchange.name} exchange does not support fetchTickers method')
-        return None
-    
-    msg = 'These are the latest prices for the symbols you\'re following:\n\n'
-    tickers = exchange.fetch_tickers(symbols)
-    for item in tickers.values():
-        msg += f' - {item["symbol"]}: {item["last"]:,.8g} ({item["percentage"]:.1f}%)\n'
-    return msg
+
 
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)

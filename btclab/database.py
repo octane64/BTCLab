@@ -318,8 +318,10 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
     if row is None:
         return None
 
+    order_date = None if row[1] is None or row[1].strip() == '' else parser.parse(row[1])
+
     order = Order(id=row[0],
-                    datetime_=row[1],
+                    datetime_=order_date,
                     symbol=row[2],
                     order_type=row[3],
                     side=row[4],
