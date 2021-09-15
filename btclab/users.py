@@ -8,7 +8,7 @@ from retry import retry
 from ccxt import NetworkError
 
 from btclab.telegram import TelegramBot
-from common import Strategy
+from btclab.common import Strategy
 
 
 logger = logging.getLogger(__name__)
@@ -106,13 +106,14 @@ class Account():
             msg += f'\n - {quote_ccy}: {balance:,.2f}'
         return msg
 
-    def greet_with_symbols_summary(self):
+    def get_summary(self) -> Optional[str]:
         current_hour = datetime.now().hour
-        if current_hour in (14, 8, 9, 10, 21, 22) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
+        if current_hour in (8, 9, 10, 21, 22) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
             msg = self._greet()
             msg += '\n' + self.get_base_currency_balances()
-            msg += '\n' + self.get_dca_summary()
-            self.telegram_bot.send_msg(msg)
+            msg += '\n' + self.get_dca_summary()            
+            return msg
+        return None
             
             
 

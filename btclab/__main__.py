@@ -33,8 +33,10 @@ class Bot():
                 logger.info('Running in simmulation mode. Balances will not be affected')
             logger.info(f'Checking information for user with id {account.user_id}')
             
-            account.greet_with_symbols_summary()
-            database.update_last_contact(account.user_id)
+            summary = account.get_summary()
+            if summary:
+                account.telegram_bot.send_msg(summary)
+                database.update_last_contact(account.user_id)
 
             if account.dca_config:
                 logger.info(f'Checking recurrent purchases for the DCA strategy')

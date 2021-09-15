@@ -382,7 +382,7 @@ def days_from_last_order(user_id: int, symbol: str, strategy: Strategy, is_dummy
         logger.info(f'An order to buy {symbol} {condition[strategy]} has never been placed')
         return -1
     
-    order_date = parser.parse(last_order.datetime_)
+    order_date = last_order.datetime_
     diff = datetime.now() - order_date
     assert diff.days >= 0, f'Last order for {symbol} (id {last_order.id}) has a date in the future {last_order.datetime_}'
     days = 'today' if diff.days == 0 else f'{diff.days} days ago'
