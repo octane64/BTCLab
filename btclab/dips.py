@@ -32,11 +32,12 @@ class DipsManager():
         else:
             min_drop = dip_config['min_drop_value'] * -1
         
-        days_from_last_order = database.days_from_last_order(user_id, symbol, Strategy.BUY_THE_DIPS, dip_config['is_dummy'])
-        
-        if days_from_last_order == 0:
-            logger.info(f'{symbol}: Today\'s order already placed!')
-            return
+        time_elapsed = self.user_account.time_since_last_order(symbol, Strategy.BUY_THE_DIPS, dip_config['is_dummy'])
+        if time_elapsed is not None:
+            hours_since_last_order = time_elapsed.seconds / 60 / 60
+            if hours_since_last_order <= 24:
+                logger.debug(f'{symbol}: Today\'s order already placed!')
+                return
 
         if dip_config['last_check_result'] == 'Insufficient funds':
             last_check = parser.parse(dip_config['last_check_date'])
@@ -76,9 +77,9 @@ class DipsManager():
             self.user_account.telegram_bot.send_msg(msg)
             return None
 
+        database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
         msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.6g}. '
                 f'Drop in last 24h is {ticker["percentage"]:+.2f}%')
-        
         if is_dummy:
             msg += '. (Running in simulation mode, balance was not affected)'
         
@@ -128,6 +129,7 @@ class DipsManager():
                 self.user_account.telegram_bot.send_msg(msg)
                 return None
                 
+            database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
             msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.2f}. '
                 f'Current price is {change_from_last_order:.2f}% from the previous buy order')
             

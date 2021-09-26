@@ -2,14 +2,13 @@ import ccxt
 import logging
 import random
 from dataclasses import dataclass, InitVar
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from retry import retry
 from ccxt import NetworkError
 
 from btclab.telegram import TelegramBot
 from btclab.common import Strategy
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +38,23 @@ class Account():
             }
         )
 
+    def time_since_last_order(self, symbol: str, strategy: Strategy, is_dummy: bool) -> Optional[timedelta]:
+        from btclab import database
+        """
+        Returns the time passed since the last order was placed for 
+        given symbol and strategy or None if no orders have been placed
+        """
+        last_order = database.get_latest_order(self.user_id, symbol, is_dummy, strategy)
+        if last_order is None:
+            return None
+        
+        order_date = last_order.datetime_
+        diff = datetime.now() - order_date
+        assert diff.total_seconds() >= 0, \
+                f'Last order for {symbol} (id {last_order.id}) has a date in the future {last_order.datetime_}'
+        
+        return diff
+
     def _greet(self):
         hour = datetime.now().hour
         name = self.first_name.split(' ')[0]
@@ -64,7 +80,7 @@ class Account():
     def get_dca_summary(self) -> str:
         from btclab import database
 
-        msg = 'Your next periodic purchases:'
+        msg = 'Next periodic purchases:'
         if len(self.dca_config) == 0:
             msg = 'You don\'t have any periodic purchase configured'
         else:
@@ -72,11 +88,14 @@ class Account():
                 last_dca_order = database.get_latest_order(self.user_id, symbol, config['is_dummy'], Strategy.DCA)
                 days_since_last_purchase = (datetime.now() - last_dca_order.datetime_).days
                 days_remaining = config['frequency'] - days_since_last_purchase
+                base_ccy = symbol.split('/')[0]
+                quote_ccy = symbol.split('/')[1]
+
                 if days_remaining > 0:
                     if days_remaining == 1:
-                        msg += f'\n - {symbol} tomorrow' 
+                        msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} tomorrow' 
                     elif days_remaining > 1:
-                        msg += f'\n - {symbol} in {str(days_remaining)} days'
+                        msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} in {str(days_remaining)} days'
         return msg
 
     def get_symbols(self) -> set[str]:
@@ -100,7 +119,7 @@ class Account():
     def get_quote_currency_balances(self) -> str:
         all_symbols = self.get_symbols()
         quote_currencies = set([symbol.split('/')[1] for symbol in all_symbols])
-        msg = f'Available balance:'
+        msg = f'\nAvailable balance:'
         for quote_ccy in quote_currencies:
             balance = self.exchange.fetch_balance()[quote_ccy]['free']
             msg += f'\n - {quote_ccy}: {balance:,.2f}'
@@ -108,10 +127,11 @@ class Account():
 
     def get_summary(self) -> Optional[str]:
         current_hour = datetime.now().hour
-        if current_hour in (8, 9, 10, 21, 22) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
+        if current_hour in (8, 9, 10, 21, 22, 23) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
             msg = self._greet()
             msg += '\n' + self.get_base_currency_balances()
-            msg += '\n' + self.get_dca_summary()            
+            msg += '\n' + self.get_dca_summary()           
+            msg += '\n' + self.get_quote_currency_balances()
             return msg
         return None
             

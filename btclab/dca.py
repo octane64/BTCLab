@@ -21,12 +21,11 @@ class DCAManager():
         Returns the number of days left to place a new buy order in a 
         dollar-cost-average (dca) strategy. 
         """
-        user_id = self.user_account.user_id
-        days_since_last_dca = database.days_from_last_order(user_id, symbol, Strategy.DCA, is_dummy)
-        if days_since_last_dca == -1:
+        time_since_last_dca = self.user_account.time_since_last_order(symbol, Strategy.DCA, is_dummy)
+        if time_since_last_dca is None:
             days_left = 0
         else:
-            days_left = self.user_account.dca_config[symbol]['frequency'] - days_since_last_dca
+            days_left = self.user_account.dca_config[symbol]['frequency'] - (time_since_last_dca.seconds / 60 / 60)
         
         return days_left
 
@@ -47,7 +46,8 @@ class DCAManager():
             days_left = self._days_to_buy(symbol, config['is_dummy'])
             
             if days_left != 0:
-                msg = f'Next purchase of {symbol} will occur in {days_left} days'
+                time_remaining = f'{days_left/24:.0f} horas' if days_left <= 1 else f'{days_left:.1f} days'
+                msg = f'Next purchase of {symbol} will occur in {time_remaining}'
                 logger.info(msg)
                 continue
 
