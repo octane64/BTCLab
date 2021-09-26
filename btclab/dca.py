@@ -56,7 +56,7 @@ class DCAManager():
                 time_since_last_check = datetime.now() - last_check
                 minutes = (time_since_last_check.seconds // 60) % 60
                 if minutes < 30:
-                    logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol} after insufficient funds')
+                    logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol} after insufficient funds')
                     continue
 
             try:
@@ -84,3 +84,5 @@ class DCAManager():
                 self.user_account.telegram_bot.send_msg(msg)
                 database.save_order(order, Strategy.DCA)
                 database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'Order placed')
+            else:
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.DCA, 'No action')

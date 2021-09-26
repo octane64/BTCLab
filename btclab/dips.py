@@ -77,11 +77,14 @@ class DipsManager():
             self.user_account.telegram_bot.send_msg(msg)
             return None
 
-        database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
-        msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.6g}. '
-                f'Drop in last 24h is {ticker["percentage"]:+.2f}%')
-        if is_dummy:
-            msg += '. (Running in simulation mode, balance was not affected)'
+        if order:
+            database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
+            msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.6g}. '
+                    f'Drop in last 24h is {ticker["percentage"]:+.2f}%')
+            if is_dummy:
+                msg += '. (Running in simulation mode, balance was not affected)'
+        else:
+            database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'No action')
         
         logger.info(msg)
         if self.user_account.notify_to_telegram:
@@ -129,13 +132,16 @@ class DipsManager():
                 self.user_account.telegram_bot.send_msg(msg)
                 return None
                 
-            database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
-            msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.2f}. '
-                f'Current price is {change_from_last_order:.2f}% from the previous buy order')
-            
-            if is_dummy:
-                msg += '. (Running in simulation mode, balance was not affected)'
-            
+            if order:
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
+                msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.2f}. '
+                    f'Current price is {change_from_last_order:.2f}% from the previous buy order')
+                
+                if is_dummy:
+                    msg += '. (Running in simulation mode, balance was not affected)'
+            else:
+                database.update_last_check(self.user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'No action')
+
             logger.info(msg)
             if self.user_account.notify_to_telegram:
                 self.user_account.telegram_bot.send_msg(msg)
