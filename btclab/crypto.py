@@ -58,7 +58,6 @@ def place_buy_order(exchange: Exchange, user_id: int, symbol: str, price: float,
 
     order['is_dummy'] = is_dummy or dry_run
     order['user_id'] = user_id
-    order['datetime'] = datetime.now().isoformat()[0:19] # Replace orders UTC time with local time
 
     return order
     

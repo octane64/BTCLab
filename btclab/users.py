@@ -5,7 +5,7 @@ from dataclasses import dataclass, InitVar
 from datetime import datetime, timedelta
 from typing import Optional
 from retry import retry
-from ccxt import NetworkError
+from ccxt import NetworkError, AuthenticationError
 
 from btclab.telegram import TelegramBot
 from btclab.common import Strategy
@@ -48,9 +48,8 @@ class Account():
         if last_order is None:
             return None
         
-        order_date = last_order.datetime_
-        diff = datetime.now() - order_date
-        assert diff.total_seconds() >= 0, \
+        diff = datetime.utcnow() - last_order.datetime_.replace(tzinfo=None)
+        assert diff.seconds >= 0, \
                 f'Last order for {symbol} (id {last_order.id}) has a date in the future {last_order.datetime_}'
         
         return diff
@@ -121,7 +120,14 @@ class Account():
         quote_currencies = set([symbol.split('/')[1] for symbol in all_symbols])
         msg = f'\nAvailable balance:'
         for quote_ccy in quote_currencies:
-            balance = self.exchange.fetch_balance()[quote_ccy]['free']
+            try:
+                balance = self.exchange.fetch_balance()[quote_ccy]['free']
+            except AuthenticationError as ae:
+                user = self.first_name + ' ' + self.last_name
+                logger.error(f'Unable to authenticate user {user}. Check API permissions')
+                logger.error(ae)
+                return 'User not authenticated'
+
             msg += f'\n - {quote_ccy}: {balance:,.2f}'
         return msg
 

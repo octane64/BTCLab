@@ -26,8 +26,8 @@ class DCAManager():
             days_left = 0
         else:
             days_left = self.user_account.dca_config[symbol]['frequency'] - (time_since_last_dca.seconds / 60 / 60)
-        
-        return days_left
+
+        return max(days_left, 0)
 
     def _get_dca_buy_msg(self, order):
         """
@@ -43,7 +43,8 @@ class DCAManager():
         for symbol, config in self.user_account.dca_config.items():
             cost = config['order_cost']
             user_id = self.user_account.user_id
-            days_left = self._days_to_buy(symbol, config['is_dummy'])
+            is_dummy = config['is_dummy'] or dry_run
+            days_left = self._days_to_buy(symbol, is_dummy)
             
             if days_left != 0:
                 time_remaining = f'{days_left/24:.0f} horas' if days_left <= 1 else f'{days_left:.1f} days'

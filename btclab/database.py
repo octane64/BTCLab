@@ -397,11 +397,11 @@ def load_symbol_stats(stats: dict):
 
     sql_update = """UPDATE symbol 
             SET std_dev = ?, 
-                updated_on = datetime('now', 'localtime')
+                updated_on = datetime('now')
             WHERE symbol = ? """
 
     sql_insert = """INSERT INTO symbol (symbol, std_dev, updated_on) 
-                VALUES (?, ?, datetime('now', 'localtime')) """
+                VALUES (?, ?, datetime('now')) """
 
     try:
         for symbol in symbols:
@@ -450,7 +450,7 @@ def update_last_contact(user_id: int):
     cur = conn.cursor()
 
     sql_update = """UPDATE user 
-            SET last_contact = datetime('now','localtime')
+            SET last_contact = datetime('now')
             WHERE user_id = ? """
 
     try:
@@ -477,7 +477,7 @@ def update_last_check(user_id: int, symbol: str, strategy: Strategy, result: str
 
 
     sql_update = f"""UPDATE {table} 
-            SET last_check_date = datetime('now','localtime'),
+            SET last_check_date = datetime('now'),
                 last_check_result = ?
             WHERE user_id = ? AND symbol = ?"""
 
