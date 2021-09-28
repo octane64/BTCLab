@@ -92,10 +92,7 @@ class Account():
                 quote_ccy = symbol.split('/')[1]
 
                 if days_remaining > 0:
-                    if days_remaining == 1:
-                        msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} tomorrow' 
-                    elif days_remaining > 1:
-                        msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} in {str(days_remaining)} days'
+                    msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} in {str(days_remaining)} days'
         return msg
 
     def get_symbols(self) -> set[str]:
