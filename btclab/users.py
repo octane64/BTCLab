@@ -39,11 +39,11 @@ class Account():
         )
 
     def time_since_last_order(self, symbol: str, strategy: Strategy, is_dummy: bool) -> Optional[timedelta]:
-        from btclab import database
         """
         Returns the time passed since the last order was placed for 
         given symbol and strategy or None if no orders have been placed
         """
+        from btclab import database
         last_order = database.get_latest_order(self.user_id, symbol, is_dummy, strategy)
         if last_order is None:
             return None
@@ -76,7 +76,7 @@ class Account():
         duration_in_hours = divmod(duration.total_seconds(), 3600)[0]
         return duration_in_hours < hours
 
-    def get_dca_summary(self) -> str:
+    def get_dca_summary(self, dry_run: bool) -> str:
         from btclab import database
 
         msg = 'Next periodic purchases:'
@@ -84,9 +84,10 @@ class Account():
             msg = 'You don\'t have any periodic purchase configured'
         else:
             for symbol, config in self.dca_config.items():
-                last_dca_order = database.get_latest_order(self.user_id, symbol, config['is_dummy'], Strategy.DCA)
-                days_since_last_purchase = (datetime.now() - last_dca_order.datetime_).days
-                days_remaining = config['frequency'] - days_since_last_purchase
+                is_dummy = dry_run or config['is_dummy'] 
+                time_elapsed = self.time_since_last_order(symbol, Strategy.DCA, is_dummy)
+                seconds_in_a_day = 86400
+                days_remaining = config['frequency'] - (time_elapsed.seconds / seconds_in_a_day)
                 base_ccy = symbol.split('/')[0]
                 quote_ccy = symbol.split('/')[1]
 
@@ -131,12 +132,12 @@ class Account():
             msg += f'\n - {quote_ccy}: {balance:,.2f}'
         return msg
 
-    def get_summary(self) -> Optional[str]:
+    def get_summary(self, dry_run: str) -> Optional[str]:
         current_hour = datetime.now().hour
         if current_hour in (8, 9, 10, 21, 22, 23) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
             msg = self._greet()
             msg += '\n' + self.get_base_currency_balances()
-            msg += '\n' + self.get_dca_summary()           
+            msg += '\n' + self.get_dca_summary(dry_run)
             msg += '\n' + self.get_quote_currency_balances()
             return msg
         return None

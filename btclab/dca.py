@@ -25,7 +25,8 @@ class DCAManager():
         if time_since_last_dca is None:
             days_left = 0
         else:
-            days_left = self.user_account.dca_config[symbol]['frequency'] - (time_since_last_dca.seconds / 60 / 60)
+            seconds_in_a_day = 86400
+            days_left = self.user_account.dca_config[symbol]['frequency'] - (time_since_last_dca.seconds / seconds_in_a_day)
 
         return max(days_left, 0)
 

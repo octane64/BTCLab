@@ -33,7 +33,7 @@ class Bot():
                 logger.info('Running in simmulation mode. Balances will not be affected')
             logger.info(f'Checking information for user with id {account.user_id}')
             
-            summary = account.get_summary()
+            summary = account.get_summary(dry_run)
             if summary:
                 account.telegram_bot.send_msg(summary)
                 database.update_last_contact(account.user_id)
