@@ -100,6 +100,7 @@ class Account():
         d2 = set(self.dips_config.keys())
         return d1.union(d2)
 
+    @retry(NetworkError, delay=15, jitter=5, logger=logger)
     def get_base_currency_balances(self) -> Optional[str]:
         if not self.exchange.has['fetchTickers']:
             logger.warning(f'{self.exchange.name} exchange does not support fetchTickers method')

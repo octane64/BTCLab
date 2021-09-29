@@ -17,9 +17,6 @@ def get_non_supported_symbols(exchange, symbols: List) -> set:
     return set(symbols).difference(set(exchange.symbols))
 
 
-
-
-
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
 def place_buy_order(exchange: Exchange, user_id: int, symbol: str, price: float, order_cost: float, order_type: str,
         strategy: Strategy, is_dummy: bool = False, dry_run: bool = False):
@@ -62,6 +59,7 @@ def place_buy_order(exchange: Exchange, user_id: int, symbol: str, price: float,
     return order
     
 
+@retry(NetworkError, delay=15, jitter=5, logger=logger)
 def insufficient_funds(exchange, symbol, order_cost):
     """
     Returns the balance in quote currency of symbol when insufficient to cover order cost, zero otherwise

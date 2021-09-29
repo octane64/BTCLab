@@ -1,10 +1,11 @@
 import logging
 from typing import Optional
 from ccxt import Exchange
-from ccxt.base.errors import InsufficientFunds
+from ccxt.base.errors import InsufficientFunds, NetworkError
 from dataclasses import dataclass
 from datetime import datetime
 from dateutil import parser
+from retry import retry
 
 from btclab import database
 from btclab import crypto
@@ -148,6 +149,7 @@ class DipsManager():
             return order
         return None
 
+    @retry(NetworkError, delay=15, jitter=5, logger=logger)
     def buy_dips(self, symbols_stats: dict, dry_run: bool):
         """
         Place orders for buying dips
