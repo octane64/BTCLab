@@ -110,7 +110,7 @@ class DipsManager():
             time_since_last_check = datetime.now() - last_check
             minutes = (time_since_last_check.seconds // 60) % 60
             if minutes < 30:
-                logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol}')
+                logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol}')
                 return
 
         change_from_last_order = (ticker['ask'] / last_order.price - 1) * 100
