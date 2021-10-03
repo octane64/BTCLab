@@ -35,7 +35,7 @@ class DipsManager():
         
         time_elapsed = self.user_account.time_since_last_order(symbol, Strategy.BUY_THE_DIPS, dip_config['is_dummy'])
         if time_elapsed is not None:
-            hours_since_last_order = time_elapsed.seconds / 60 / 60
+            hours_since_last_order = time_elapsed.total_seconds() / 60 / 60
             if hours_since_last_order <= 24:
                 logger.debug(f'{symbol}: Today\'s order already placed!')
                 return
@@ -43,7 +43,7 @@ class DipsManager():
         if dip_config['last_check_result'] == 'Insufficient funds':
             last_check = parser.parse(dip_config['last_check_date'])
             time_since_last_check = datetime.now() - last_check
-            minutes = (time_since_last_check.seconds // 60) % 60
+            minutes = (time_since_last_check.total_seconds() // 60) % 60
             if minutes < 30:
                 logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol}')
                 return
@@ -109,7 +109,7 @@ class DipsManager():
         if dip_config['last_check_result'] == 'Insufficient funds':
             last_check = parser.parse(dip_config['last_check_date'])
             time_since_last_check = datetime.now() - last_check
-            minutes = (time_since_last_check.seconds // 60) % 60
+            minutes = (time_since_last_check.total_seconds() // 60) % 60
             if minutes < 30:
                 logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol}')
                 return

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass
 from dateutil import parser 
 from ccxt.base.errors import InsufficientFunds
@@ -26,7 +26,8 @@ class DCAManager():
             days_left = 0
         else:
             seconds_in_a_day = 86400
-            days_left = self.user_account.dca_config[symbol]['frequency'] - (time_since_last_dca.seconds / seconds_in_a_day)
+            days_left = self.user_account.dca_config[symbol]['frequency'] - \
+                (time_since_last_dca.total_seconds() / seconds_in_a_day)
 
         return max(days_left, 0)
 
@@ -38,6 +39,22 @@ class DCAManager():
         msg = f'Periodic buys: buying {order["cost"]:.2g} of {order["symbol"]} @ {order["price"]:,.5g}'
         if order['is_dummy']:
             msg += '. (Simulation)'
+        return msg
+
+    def get_dca_summary(self, dry_run: bool) -> str:
+        if len(self.dca_config) == 0:
+            return 'No DCA configuration found'
+        
+        msg = 'Next periodic purchases:'
+        for symbol, config in self.dca_config.items():
+            is_dummy = dry_run or config['is_dummy'] 
+            days_remaining = self._days_to_buy(symbol, is_dummy)
+            base_ccy = symbol.split('/')[0]
+            quote_ccy = symbol.split('/')[1]
+
+            if days_remaining > 0:
+                next_date = datetime.now() + timedelta(days=days_remaining)
+                msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} on {next_date:%d-%m-%Y}'
         return msg
 
     def buy(self, dry_run: bool):
@@ -56,7 +73,7 @@ class DCAManager():
             if config['last_check_result'] == 'Insufficient funds':
                 last_check = parser.parse(config['last_check_date'])
                 time_since_last_check = datetime.now() - last_check
-                minutes = (time_since_last_check.seconds // 60) % 60
+                minutes = (time_since_last_check.total_seconds() // 60) % 60
                 if minutes < 30:
                     logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol} after insufficient funds')
                     continue

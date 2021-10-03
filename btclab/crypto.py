@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
 def get_non_supported_symbols(exchange, symbols: List) -> set:
+    """
+    From a list of symbols, returns a sublist of those not supported in a given exchange
+    """
     exchange.load_markets()
     return set(symbols).difference(set(exchange.symbols))
 
@@ -60,9 +63,10 @@ def place_buy_order(exchange: Exchange, user_id: int, symbol: str, price: float,
     
 
 @retry(NetworkError, delay=15, jitter=5, logger=logger)
-def insufficient_funds(exchange, symbol, order_cost):
+def check_funds(exchange, symbol, order_cost):
     """
-    Returns the balance in quote currency of symbol when insufficient to cover order cost, zero otherwise
+    Checks if available balance of quote currency in symbol is enough to cover oder cost
+    Returns zero if true or available balance otherwise
     """
     quote_ccy = symbol.split('/')[1]
     balance = exchange.fetch_balance()[quote_ccy]['free']

@@ -49,12 +49,12 @@ class Account():
             return None
         
         diff = datetime.utcnow() - last_order.datetime_.replace(tzinfo=None)
-        assert diff.seconds >= 0, \
+        assert diff.total_seconds() >= 0, \
                 f'Last order for {symbol} (id {last_order.id}) has a date in the future {last_order.datetime_}'
         
         return diff
 
-    def _greet(self):
+    def _greet(self) -> str:
         hour = datetime.now().hour
         name = self.first_name.split(' ')[0]
         if datetime.now().hour < 12:
@@ -75,25 +75,6 @@ class Account():
         duration = datetime.now() - self.last_contact
         duration_in_hours = divmod(duration.total_seconds(), 3600)[0]
         return duration_in_hours < hours
-
-    def get_dca_summary(self, dry_run: bool) -> str:
-        from btclab import database
-
-        msg = 'Next periodic purchases:'
-        if len(self.dca_config) == 0:
-            msg = 'You don\'t have any periodic purchase configured'
-        else:
-            for symbol, config in self.dca_config.items():
-                is_dummy = dry_run or config['is_dummy'] 
-                time_elapsed = self.time_since_last_order(symbol, Strategy.DCA, is_dummy)
-                seconds_in_a_day = 86400
-                days_remaining = config['frequency'] - (time_elapsed.seconds / seconds_in_a_day)
-                base_ccy = symbol.split('/')[0]
-                quote_ccy = symbol.split('/')[1]
-
-                if days_remaining > 0:
-                    msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} in {days_remaining:.1f} days'
-        return msg
 
     def get_symbols(self) -> set[str]:
         d1 = set(self.dca_config.keys())
