@@ -4,8 +4,8 @@ import click
 from dataclasses import dataclass
 
 from btclab import __version__
-from btclab.dca import DCAManager
-from btclab.dips import DipsManager
+from btclab import dca
+from btclab import dips
 from btclab.users import Account
 from btclab import data
 from btclab import database
@@ -32,16 +32,15 @@ class Bot():
             if dry_run:
                 logger.info('Running in simmulation mode. Balances will not be affected')
             logger.info(f'Checking information for user with id {account.user_id}')
-            
-            summary = account.get_summary(dry_run)
-            if summary:
-                account.telegram_bot.send_msg(summary)
-                database.update_last_contact(account.user_id)
 
             if account.dca_config:
                 logger.info(f'Checking recurrent purchases for the DCA strategy')
-                dca_manager = DCAManager(account)
-                dca_manager.buy(dry_run)
+                summary = account.get_summary(dry_run)
+                if summary:
+                    account.telegram_bot.send_msg(summary)
+                    database.update_last_contact(account.user_id)
+                
+                dca.buy(account, dry_run)
             else:
                 logger.info(f'No DCA config found for user id {account.user_id}')
             
@@ -55,9 +54,7 @@ class Bot():
                     database.load_symbol_stats(std_devs)
                     symbols_stats = database.get_symbols_stats()
                 
-                
-                dips_manager = DipsManager(account)
-                dips_manager.buy_dips(symbols_stats, dry_run)
+                dips.buy_dips(account, symbols_stats, dry_run)
             else:
                 logger.info(f'No dips config found for user id {account.user_id}')
 

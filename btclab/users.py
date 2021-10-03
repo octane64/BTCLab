@@ -8,6 +8,7 @@ from retry import retry
 from ccxt import NetworkError, AuthenticationError
 
 from btclab.telegram import TelegramBot
+from btclab import dca
 from btclab.common import Strategy
 
 logger = logging.getLogger(__name__)
@@ -113,10 +114,10 @@ class Account():
 
     def get_summary(self, dry_run: str) -> Optional[str]:
         current_hour = datetime.now().hour
-        if current_hour in (8, 9, 10, 21, 22, 23) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
+        if current_hour in (7, 8, 22, 23) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
             msg = self._greet()
             msg += '\n' + self.get_base_currency_balances()
-            msg += '\n' + self.get_dca_summary(dry_run)
+            msg += '\n' + dca.get_dca_summary(self, dry_run)
             msg += '\n' + self.get_quote_currency_balances()
             return msg
         return None
