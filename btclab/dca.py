@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 from dateutil import parser 
 from ccxt.base.errors import InsufficientFunds
 
-from btclab.common import Strategy
-from btclab.users import Account
-from btclab import database
-from btclab import crypto
+from common import Strategy
+from users import Account
+import database
+import crypto
 
 
 logger = logging.getLogger(__name__)

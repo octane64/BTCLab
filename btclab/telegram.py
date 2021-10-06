@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from os import name
 from retry import retry
 import requests
 

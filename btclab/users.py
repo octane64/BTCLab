@@ -7,9 +7,9 @@ from typing import Optional
 from retry import retry
 from ccxt import NetworkError, AuthenticationError
 
-from btclab.telegram import TelegramBot
-from btclab import dca
-from btclab.common import Strategy
+from telegram import TelegramBot
+import dca
+from common import Strategy
 
 logger = logging.getLogger(__name__)
 

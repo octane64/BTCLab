@@ -3,12 +3,12 @@ import logging
 import click
 from dataclasses import dataclass
 
-from btclab import __version__
-from btclab import dca
-from btclab import dips
-from btclab.users import Account
-from btclab import data
-from btclab import database
+# import __version__
+import dca
+import dips
+from users import Account
+import data
+import database
 
 
 log_format = '%(asctime)s - %(levelname)-8s - %(message)s'
@@ -63,7 +63,7 @@ class Bot():
 @click.option('-v', '--verbose', is_flag=True, help="Print verbose messages while excecuting")
 @click.option('--dry-run', is_flag=True, help="Run in simulation mode (Don't affect balances)")
 def main(verbose, dry_run):
-    logger.info(f'BTCLab version {__version__}')
+    # logger.info(f'BTCLab version {__version__}')
     if verbose:
         logger.setLevel(logging.DEBUG)
 

@@ -7,11 +7,11 @@ from datetime import datetime
 from dateutil import parser
 from retry import retry
 
-from btclab import database
-from btclab import crypto
-from btclab.common import Strategy
-from btclab.users import Account
-from btclab.order import Order
+import database
+import crypto
+from common import Strategy
+from users import Account
+from order import Order
 
 
 logger = logging.getLogger(__name__)

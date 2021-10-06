@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from btclab.common import Strategy
+from common import Strategy
 
 
 
