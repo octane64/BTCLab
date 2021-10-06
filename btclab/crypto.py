@@ -5,8 +5,8 @@ from retry import retry
 from ccxt.base.exchange import Exchange
 from ccxt.base.errors import InsufficientFunds, BadSymbol, NetworkError
 
-from btclab.common import Strategy
-from btclab.order import Order
+from common import Strategy
+from order import Order
 
 logger = logging.getLogger(__name__)
 

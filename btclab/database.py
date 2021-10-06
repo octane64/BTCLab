@@ -7,10 +7,10 @@ from dateutil import parser
 from sqlite3 import Error, Connection
 from typing import Optional
 
-from btclab.common import Strategy
-from btclab.order import Order
-from btclab.telegram import TelegramBot
-from btclab.users import Account
+from common import Strategy
+from order import Order
+from telegram import TelegramBot
+from users import Account
 
 
 logger = logging.getLogger(__name__)
