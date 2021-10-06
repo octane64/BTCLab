@@ -8,7 +8,7 @@ from common import Strategy
 @dataclass
 class Order():
     id: str                     # '12345-67890:09876/54321'
-    datetime_: int              # ISO8601 datetime string with milliseconds
+    datetime_: datetime              # ISO8601 datetime string with milliseconds
     symbol: str                 # 'ETH/BTC', symbol
     order_type: str             # 'market', 'limit'
     side: str                   # 'buy', 'sell'
