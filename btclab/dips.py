@@ -39,7 +39,7 @@ def buy_initial_drop(user_account: Account, ticker, dip_config: dict, symbols_st
 
     if dip_config['last_check_result'] == 'Insufficient funds':
         last_check = parser.parse(dip_config['last_check_date'])
-        time_since_last_check = datetime.now() - last_check
+        time_since_last_check = datetime.utcnow() - last_check
         minutes = time_since_last_check.total_seconds() / 60
         if minutes < 30:
             logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol}')
@@ -106,7 +106,7 @@ def buy_additional_drop(user_account: Account, ticker, dip_config: dict, dry_run
     
     if dip_config['last_check_result'] == 'Insufficient funds':
         last_check = parser.parse(dip_config['last_check_date'])
-        time_since_last_check = datetime.now() - last_check
+        time_since_last_check = datetime.utcnow() - last_check
         minutes = (time_since_last_check.total_seconds() // 60) % 60
         if minutes < 30:
             logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol}')

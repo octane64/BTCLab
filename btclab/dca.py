@@ -70,7 +70,7 @@ def buy(user_account: Account, dry_run: bool):
 
         if config['last_check_result'] == 'Insufficient funds':
             last_check = parser.parse(config['last_check_date'])
-            time_since_last_check = datetime.now() - last_check
+            time_since_last_check = datetime.utcnow() - last_check
             minutes = (time_since_last_check.total_seconds() // 60) % 60
             if minutes < 30:
                 logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol} after insufficient funds')

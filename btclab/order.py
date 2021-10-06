@@ -26,7 +26,7 @@ class Order():
         is the same as the one returned by the create_order function from ccxt library
         https://ccxt.readthedocs.io/en/latest/manual.html#orders
         """
-        right_now = datetime.now()
+        right_now = datetime.utcnow()
         order = {
                 'id': int(right_now.timestamp()),
                 'datetime': right_now.isoformat(),

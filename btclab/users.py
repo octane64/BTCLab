@@ -73,7 +73,7 @@ class Account():
         if self.last_contact is None:
             return False
         
-        duration = datetime.now() - self.last_contact
+        duration = datetime.utcnow() - self.last_contact
         duration_in_hours = divmod(duration.total_seconds(), 3600)[0]
         return duration_in_hours < hours
 
