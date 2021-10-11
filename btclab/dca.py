@@ -4,8 +4,8 @@ from dateutil import parser
 from ccxt.base.errors import InsufficientFunds
 
 from common import Strategy
-from users import Account
 import database
+from users import Account
 import crypto
 
 

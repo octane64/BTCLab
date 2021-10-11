@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from retry import retry
 from ccxt import NetworkError, AuthenticationError
+import database
 
 from telegram import TelegramBot
 import dca
@@ -44,7 +45,7 @@ class Account():
         Returns the time passed since the last order was placed for 
         given symbol and strategy or None if no orders have been placed
         """
-        from btclab import database
+        import database
         last_order = database.get_latest_order(self.user_id, symbol, is_dummy, strategy)
         if last_order is None:
             return None

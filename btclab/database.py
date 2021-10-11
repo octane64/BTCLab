@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlite3.dbapi2 import Cursor
 from dateutil import parser
 from sqlite3 import Error, Connection
-from typing import Optional
+from typing import List, Optional
 
 from common import Strategy
 from order import Order
@@ -130,7 +130,7 @@ def create_db():
         logger.exception("Error! cannot create the database connection.")
 
 
-def get_users() -> list[Account]:
+def get_users() -> List[Account]:
     """
     Return the list of active user accounts from the databse
     """
