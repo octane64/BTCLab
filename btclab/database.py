@@ -296,10 +296,7 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
                 strategy,
                 is_dummy
             FROM exchange_order
-            WHERE rowid = (
-                    SELECT MAX(rowid) FROM exchange_order
-                    WHERE user_id = ? AND symbol = ? AND is_dummy = ? AND strategy = ?
-                )
+            WHERE user_id = ? AND symbol = ? AND is_dummy = ? AND strategy = ?
             ORDER BY rowid DESC
             LIMIT 1
             """
