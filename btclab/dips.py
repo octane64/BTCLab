@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from ccxt import Exchange
-from ccxt.base.errors import InsufficientFunds, NetworkError
+from ccxt.base.errors import InsufficientFunds, NetworkError, AuthenticationError
 from dataclasses import dataclass
 from datetime import datetime
 from dateutil import parser
@@ -17,13 +17,13 @@ from order import Order
 logger = logging.getLogger(__name__)
 
 
-def buy_initial_drop(user_account: Account, ticker, dip_config: dict, symbols_stats: dict, dry_run: bool):
+def buy_initial_drop(user_account: Account, symbol: str, dip_config: dict, symbols_stats: dict, dry_run: bool):
     """
     Places a new buy order if at current price the change in the last 24h represents a drop
     that surpasses the min_drop limit and the symbol has not been bought in the last 24 hours
     """
     user_id = user_account.user_id
-    symbol = ticker['symbol']
+    
     cost = dip_config['order_cost']
     if dip_config['min_drop_units'] == 'SD':
         min_drop = dip_config['min_drop_value'] * symbols_stats[symbol]['std_dev'] * -100
@@ -44,6 +44,12 @@ def buy_initial_drop(user_account: Account, ticker, dip_config: dict, symbols_st
         if minutes < 30:
             logger.info(f'Waiting {minutes} more minutes to check again for dips in {symbol}')
             return
+
+    try:
+        ticker = user_account.exchange.fetch_ticker(symbol)
+    except AuthenticationError:
+        logger.error('Authentication error')
+        return
 
     if not ticker['percentage'] < min_drop:
         database.update_last_check(user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'No action')
@@ -91,14 +97,13 @@ def buy_initial_drop(user_account: Account, ticker, dip_config: dict, symbols_st
     return order
     
 
-def buy_additional_drop(user_account: Account, ticker, dip_config: dict, dry_run: bool) -> Optional[Order]:
+def buy_additional_drop(user_account: Account, symbol: str, dip_config: dict, dry_run: bool) -> Optional[Order]:
     """
     Places a new buy order if symbol has been bought recently and last 24h drop 
     surpasses the min_next_drop limit
     """
     user_id = user_account.user_id
     exchange = user_account.exchange
-    symbol = ticker['symbol']
     is_dummy = dip_config['is_dummy'] or dry_run
     last_order = database.get_latest_order(user_id, symbol, is_dummy, Strategy.BUY_THE_DIPS)
     if last_order is None:
@@ -111,6 +116,12 @@ def buy_additional_drop(user_account: Account, ticker, dip_config: dict, dry_run
         if minutes < 30:
             logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol}')
             return
+
+    try:
+        ticker = user_account.exchange.fetch_ticker(symbol)
+    except AuthenticationError:
+        logger.error('Authentication error')
+        return
 
     change_from_last_order = (ticker['ask'] / last_order.price - 1) * 100
     if change_from_last_order < -dip_config['min_additional_drop_pct']:
@@ -153,13 +164,11 @@ def buy_dips(user_account: Account, symbols_stats: dict, dry_run: bool):
     """
     Place orders for buying dips
     """
-    exchange = user_account.exchange
     for symbol, dip_config in user_account.dips_config.items():
-        ticker = exchange.fetch_ticker(symbol)
-        order = buy_initial_drop(user_account, ticker, dip_config, symbols_stats, dry_run)
+        order = buy_initial_drop(user_account, symbol, dip_config, symbols_stats, dry_run)
         
         if order is None:
-            order = buy_additional_drop(user_account, ticker, dip_config, dry_run)
+            order = buy_additional_drop(user_account, symbol, dip_config, dry_run)
         
         if order is not None:
             database.save_order(order, Strategy.BUY_THE_DIPS)
