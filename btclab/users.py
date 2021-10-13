@@ -91,7 +91,13 @@ class Account():
         
         symbols = self.get_symbols()
         msg = '\nCurrent prices for your symbols are:\n'
-        tickers = self.exchange.fetch_tickers(symbols)
+        
+        try:
+            tickers = self.exchange.fetch_tickers(symbols)
+        except AuthenticationError:
+            logger.error('Authentication error')
+            return None
+        
         for item in tickers.values():
             msg += f' - {item["symbol"]}: {item["last"]:,.8g} ({item["percentage"]:.1f}%)\n'
         return msg
