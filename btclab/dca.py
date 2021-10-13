@@ -96,7 +96,7 @@ def buy(user_account: Account, dry_run: bool):
             continue
         except AuthenticationError:
             database.update_last_check(user_account.user_id, symbol, Strategy.DCA, 'Authentication error')
-            logger.info('Authentication error')
+            logger.error('Authentication error')
             continue
         if order:
             msg = get_dca_buy_msg(order)
