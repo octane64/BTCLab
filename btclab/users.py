@@ -123,7 +123,11 @@ class Account():
         current_hour = datetime.now().hour
         if current_hour in (7, 8, 22, 23) and not self.contacted_in_the_last(hours=6) and self.notify_to_telegram:
             msg = self._greet()
-            msg += '\n' + self.get_base_currency_balances()
+            balances_msg = self.get_base_currency_balances()
+            if balances_msg is None:
+                return None
+            
+            msg += '\n' + balances_msg
             msg += '\n' + dca.get_dca_summary(self, dry_run)
             msg += '\n' + self.get_quote_currency_balances()
             return msg
