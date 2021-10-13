@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from dateutil import parser 
-from ccxt.base.errors import InsufficientFunds
+from ccxt.base.errors import InsufficientFunds, AuthenticationError
 
 from common import Strategy
 import database
@@ -94,7 +94,10 @@ def buy(user_account: Account, dry_run: bool):
             logger.info(msg)
             user_account.telegram_bot.send_msg(msg)
             continue
-
+        except AuthenticationError:
+            database.update_last_check(user_account.user_id, symbol, Strategy.DCA, 'Authentication error')
+            logger.info('Authentication error')
+            continue
         if order:
             msg = get_dca_buy_msg(order)
             logger.info(msg)
