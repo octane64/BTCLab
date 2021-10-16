@@ -56,7 +56,7 @@ def create_db():
                 exchange_id text NOT NULL,
                 api_key text NOT NULL UNIQUE,
                 api_secret text NOT NULL UNIQUE,
-                telegram_bot_token text UNIQUE,
+                telegram_bot_token text NOT NULL,
                 telegram_chat_id text UNIQUE,
                 notify_to_telegram integer DEFAULT 1,
                 notify_to_email integer DEFAULT 0
