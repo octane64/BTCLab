@@ -22,21 +22,12 @@ def buy_initial_drop(user_account: Account, symbol: str, dip_config: dict, symbo
     Places a new buy order if at current price the change in the last 24h represents a drop
     that surpasses the min_drop limit and the symbol has not been bought in the last 24 hours
     """
-    user_id = user_account.user_id
     
-    cost = dip_config['order_cost']
     if dip_config['min_drop_units'] == 'SD':
         min_drop = dip_config['min_drop_value'] * symbols_stats[symbol]['std_dev'] * -100
     else:
         min_drop = dip_config['min_drop_value'] * -1
     
-    time_elapsed = user_account.time_since_last_order(symbol, Strategy.BUY_THE_DIPS, dip_config['is_dummy'])
-    if time_elapsed is not None:
-        hours_since_last_order = time_elapsed.total_seconds() / 60 / 60
-        if hours_since_last_order <= 24:
-            logger.debug(f'{symbol}: Today\'s order already placed!')
-            return
-
     if dip_config['last_check_result'] == 'Insufficient funds':
         last_check = parser.parse(dip_config['last_check_date'])
         time_since_last_check = datetime.utcnow() - last_check
@@ -60,28 +51,32 @@ def buy_initial_drop(user_account: Account, symbol: str, dip_config: dict, symbo
     asset = symbol.split('/')[0]
     quote_ccy = symbol.split('/')[1]
     price = ticker['last']
+    cost = dip_config['order_cost']
     is_dummy = dip_config['is_dummy'] or dry_run
     order = None
 
-    try:
-        order = crypto.place_buy_order(exchange=user_account.exchange, 
-                                        user_id=user_id,
-                                        symbol=symbol, 
-                                        price=price,
-                                        order_cost=cost, 
-                                        order_type='market', 
-                                        strategy=Strategy.BUY_THE_DIPS,
-                                        is_dummy=is_dummy,
-                                        dry_run=dry_run)
-    except InsufficientFunds:
-        database.update_last_check(user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Insufficient funds')
-        logger.info('Insufficient funds')
-        quote_ccy = symbol.split('/')[1]
-        base_ccy = symbol.split('/')[0]
-        msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
-        user_account.telegram_bot.send_msg(msg)
-        return None
+    last_dca = database.get_latest_order(user_account.user_id, symbol, dip_config['is_dummy'], Strategy.DCA)
+    if last_dca is None or last_dca.price > price:
+        try:
+            order = crypto.place_buy_order(exchange=user_account.exchange, 
+                                            user_id=user_account.user_id,
+                                            symbol=symbol, 
+                                            price=price,
+                                            order_cost=cost, 
+                                            order_type='market', 
+                                            strategy=Strategy.BUY_THE_DIPS,
+                                            is_dummy=is_dummy,
+                                            dry_run=dry_run)
+        except InsufficientFunds:
+            database.update_last_check(user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Insufficient funds')
+            logger.info('Insufficient funds')
+            quote_ccy = symbol.split('/')[1]
+            base_ccy = symbol.split('/')[0]
+            msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
+            user_account.telegram_bot.send_msg(msg)
+            return None
 
+    msg = ''
     if order:
         database.update_last_check(user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'Order placed')
         msg = (f'Buying {order["cost"]:,.2f} {quote_ccy} of {asset} @ {price:,.6g}. '
