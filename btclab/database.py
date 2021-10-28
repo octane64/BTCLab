@@ -278,12 +278,13 @@ def get_dip_config(user_id: int) -> dict:
     return dip_config
 
 
-def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strategy) -> Optional[Order]:
+def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strategy = None) -> Optional[Order]:
     """
-    Returns the latest order of a user for a given strategy
+    Returns the latest order of a user for a given symbol and strategy
     """
     conn = create_connection()
     cur = conn.cursor()
+    strategy_clause = 'AND strategy = ?' if strategy else ''
     sql = f"""SELECT
                 order_id,
                 datetime,
@@ -296,13 +297,14 @@ def get_latest_order(user_id: int, symbol: str, is_dummy: bool, strategy: Strate
                 strategy,
                 is_dummy
             FROM exchange_order
-            WHERE user_id = ? AND symbol = ? AND is_dummy = ? AND strategy = ?
+            WHERE user_id = ? AND symbol = ? AND is_dummy = ? {strategy_clause}
             ORDER BY rowid DESC
             LIMIT 1
             """
     
     try:
-        cur.execute(sql, (user_id, symbol, int(is_dummy), strategy.value))
+        params = (user_id, symbol, int(is_dummy), strategy.value) if strategy else (user_id, symbol, int(is_dummy))
+        cur.execute(sql, params)
         row = cur.fetchone()
     except sqlite3.Error as error:
         logger.exception(f'Failed to retrieve latest order of user {user_id}')
