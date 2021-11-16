@@ -86,13 +86,14 @@ def buy_drop(user_account: Account, symbol: str, dip_config: dict, symbols_stats
                 f'Drop in last 24h is {ticker["percentage"]:+.2f}%')
         if is_dummy:
             msg += '. (Running in simulation mode, balance was not affected)'
+
+        if user_account.notify_to_telegram:
+            user_account.telegram_bot.send_msg(msg)
     else:
         msg = f'{symbol}: {dip_config["min_additional_drop_pct"]}% of min additional drop from previous order not met'
         database.update_last_check(user_account.user_id, symbol, Strategy.BUY_THE_DIPS, 'No action')
     
     logger.info(msg)
-    if user_account.notify_to_telegram:
-        user_account.telegram_bot.send_msg(msg)
     return order
     
 
