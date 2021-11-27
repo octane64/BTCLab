@@ -52,7 +52,7 @@ def buy_drop(user_account: Account, symbol: str, dip_config: dict, symbols_stats
 
     last_dca = database.get_latest_order(user_account.user_id, symbol, is_dummy, Strategy.DCA)
     last_dip = database.get_latest_order(user_account.user_id, symbol, is_dummy, Strategy.BUY_THE_DIPS)
-    chg_from_last_dip = ((price / last_dip.price) - 1) * -100 if last_dip is not None else 0
+    chg_from_last_dip = ((price / last_dip.price) - 1) * 100 if last_dip is not None else 0
 
     if ticker['percentage'] < min_drop:
          if chg_from_last_dip < -dip_config['min_additional_drop_pct'] or (last_dip is None and last_dca is not None):
