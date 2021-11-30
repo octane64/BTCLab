@@ -72,7 +72,7 @@ def buy(user_account: Account, dry_run: bool):
             last_check = parser.parse(config['last_check_date'])
             time_since_last_check = datetime.utcnow() - last_check
             minutes = (time_since_last_check.total_seconds() // 60) % 60
-            if minutes < 30:
+            if minutes < 60 * 24:
                 logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol} after insufficient funds')
                 continue
 
@@ -90,7 +90,7 @@ def buy(user_account: Account, dry_run: bool):
             database.update_last_check(user_account.user_id, symbol, Strategy.DCA, 'Insufficient funds')
             quote_ccy = symbol.split('/')[1]
             base_ccy = symbol.split('/')[0]
-            msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 30 minutes'
+            msg = f'Insufficient funds to buy {cost:.1f} {quote_ccy} of {base_ccy}. Trying again in 24 hours'
             logger.info(msg)
             user_account.telegram_bot.send_msg(msg)
             continue
