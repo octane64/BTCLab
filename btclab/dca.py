@@ -49,7 +49,7 @@ def get_dca_summary(user_account: Account, dry_run: bool) -> str:
         base_ccy = symbol.split('/')[0]
         quote_ccy = symbol.split('/')[1]
 
-        if days_remaining > 0:
+        if days_remaining >= 0:
             next_date = datetime.now() + timedelta(days=days_remaining)
             msg += f'\n - {config["order_cost"]:g} {quote_ccy} of {base_ccy} on {next_date:%d-%m-%Y}'
     return msg
@@ -71,9 +71,9 @@ def buy(user_account: Account, dry_run: bool):
         if config['last_check_result'] == 'Insufficient funds':
             last_check = parser.parse(config['last_check_date'])
             time_since_last_check = datetime.utcnow() - last_check
-            minutes = (time_since_last_check.total_seconds() // 60) % 60
-            if minutes < 60 * 24:
-                logger.info(f'Waiting {minutes} minutes to check again for dips in {symbol} after insufficient funds')
+            minutes = time_since_last_check.total_seconds() / 60
+            if minutes < 90:
+                logger.info(f'Waiting {90 - minutes} minutes to check again for dips in {symbol} after insufficient funds')
                 continue
 
         try:
